@@ -1,5 +1,0 @@
-database:
-  DATABASE_USER: admin
-  DATABASE_DB: pub-api
-  DATABASE_PASSWORD: password
-
