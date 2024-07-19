@@ -1232,6 +1232,7 @@ dependencies = [
  "chrono",
  "config",
  "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "tokio",
