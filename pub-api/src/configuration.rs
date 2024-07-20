@@ -1,6 +1,7 @@
 use config::{Config, File, FileFormat};
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+
 pub struct Database {
     #[serde(alias = "DATABASE_USER")]
     pub database_user: String,

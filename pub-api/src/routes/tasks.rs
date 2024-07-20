@@ -25,7 +25,6 @@ pub async fn create_task(
     State(state): State<Arc<AppState>>,
     Json(task): Json<Tasks>,
 ) -> Result<impl IntoResponse, AppError> {
-    println!("hello world");
     if task.retry > 3 || task.retry < 0 {
         return Ok((
             StatusCode::BAD_REQUEST,
@@ -41,19 +40,19 @@ pub async fn create_task(
             ),
         ));
     }
-    sqlx::query!(
+    let res = sqlx::query!(
         "INSERT INTO Tasks (schedule_at_in_second, status, output, retry, created_at) 
-         VALUES ($1,$2,$3,$4,$5)",
+         VALUES ($1,$2,$3,$4,$5) RETURNING id",
         task.schedule_at_in_second as i32,
         "ADDED",
         "",
         task.retry,
         Utc::now()
     )
-    .execute(&state.pool.clone())
+    .fetch_one(&state.pool.clone())
     .await
     .map_err(|e| AppError(anyhow::Error::new(e)))?;
-    return Ok((StatusCode::OK, Json(json!({"status":"ADDED"}))));
+    return Ok((StatusCode::OK, Json(json!({"status":"ADDED","id":res.id}))));
 }
 #[derive(serde::Deserialize)]
 pub struct Id {
