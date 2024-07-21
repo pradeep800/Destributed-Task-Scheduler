@@ -2,11 +2,10 @@ services:
   task-db:
     image: postgres
     container_name: task-db
-    restart: always
-    shm_size: 128mb
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: admin 
+      POSTGRES_USER: postgres 
       POSTGRES_PASSWORD: password 
       POSTGRES_DB: tasks
+      POSTGRES_HOST: localhost

@@ -1,9 +1,5 @@
 use anyhow::Context;
-use pub_api::{
-    configuration::get_configuration,
-    startup::get_server,
-    utils::{database::get_db_pool, tracing::*},
-};
+use pub_api::{configuration::get_configuration, startup::get_server, tracing::*};
 
 #[tokio::main]
 async fn main() {
@@ -13,10 +9,9 @@ async fn main() {
         std::io::stdout,
     );
     init_subscriber(subscriber);
-    let mut config = get_configuration();
+    let config = get_configuration();
 
-    let db_pool = get_db_pool(&mut config.database).await;
-
+    let db_pool = config.database.get_pool().await;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();

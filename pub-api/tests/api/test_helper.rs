@@ -4,15 +4,9 @@ use once_cell::sync::Lazy;
 use pub_api::{
     configuration::{get_configuration, Database},
     startup::get_server,
-    utils::{
-        database::{create_connection_without_db, get_db_pool},
-        tracing::{get_subscriber, init_subscriber},
-    },
+    tracing::{get_subscriber, init_subscriber},
 };
-use sqlx::{
-    postgres::{PgConnectOptions, PgPoolOptions},
-    query, ConnectOptions, Connection, PgConnection, PgPool,
-};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
     let subscriber_name = "test".to_string();
@@ -30,25 +24,25 @@ pub struct AppInfo {
     pub db_pool: PgPool,
 }
 pub async fn migrate_and_get_db(database: &mut Database) -> PgPool {
-    let postfix = uuid::Uuid::new_v4().to_string();
-    database.database_db += &postfix;
-    let db_pool = get_db_pool(database).await;
-    let connection_string = create_connection_without_db(database);
-    let pgConnection = PgConnectOptions::new()
-        .host("localhost")
-        .username(&database.database_user)
-        .port(5432);
-    let mut connection = PgConnection::connect_with(&pgConnection)
-        .await
-        .expect("Failed to connect to Postgres");
-    query!(format!(r#"CREATE DATABASE "{}";"#, database.database_db).
+    let mut connection =
+        PgConnection::connect(database.get_connecting_string_without_db().as_str())
+            .await
+            .expect("Failed to connect to Postgres");
+
+    database.database_db += &uuid::Uuid::new_v4().to_string();
     connection
-        .execute(&*))
-    .await
-    .expect("Failed to create database.");
-    let db_pool = get_db_pool(database).await;
-    let _ = sqlx::migrate!("./migrations").run(&db_pool).await;
-    db_pool
+        .execute(format!(r#"CREATE DATABASE "{}";"#, database.database_db).as_str())
+        .await
+        .expect("Failed to create database.");
+
+    // Migrate database
+    let connection_pool = database.get_pool().await;
+    sqlx::migrate!("./migrations")
+        .run(&connection_pool)
+        .await
+        .expect("Failed to migrate the database");
+
+    connection_pool
 }
 pub async fn spawn() -> AppInfo {
     let mut config = get_configuration();

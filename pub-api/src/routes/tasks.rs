@@ -58,7 +58,7 @@ pub async fn create_task(
 pub struct Id {
     pub id: i32,
 }
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Task {
     pub id: i32,
     pub schedule_at_in_second: i32,
