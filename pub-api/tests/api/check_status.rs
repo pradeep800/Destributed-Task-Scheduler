@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::SystemTime};
 
 use chrono::{Timelike, Utc};
 use pub_api::routes::tasks::Task;
@@ -10,7 +10,12 @@ async fn check_status_of_task() {
     let app = spawn().await;
     let client = reqwest::Client::new();
     // insert a task in database
-    let schedule_at_in_second = (Utc::now().second() + 100) as i32;
+    let second = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        + 30;
+    let schedule_at_in_second = (second + 100) as i32;
     let retry = 3;
     let res = sqlx::query!(
         "INSERT INTO Tasks (schedule_at_in_second, status, process_time_in_second, retry, created_at) 
