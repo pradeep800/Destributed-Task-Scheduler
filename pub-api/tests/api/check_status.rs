@@ -13,11 +13,11 @@ async fn check_status_of_task() {
     let schedule_at_in_second = (Utc::now().second() + 100) as i32;
     let retry = 3;
     let res = sqlx::query!(
-        "INSERT INTO Tasks (schedule_at_in_second, status, output, retry, created_at) 
+        "INSERT INTO Tasks (schedule_at_in_second, status, process_time_in_second, retry, created_at) 
          VALUES ($1,$2,$3,$4,$5) RETURNING id",
         schedule_at_in_second,
         "ADDED",
-        "",
+        2*60*60,
         retry,
         Utc::now()
     )

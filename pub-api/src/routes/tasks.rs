@@ -1,7 +1,7 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use chrono::{DateTime, Timelike, Utc};
+use chrono::{DateTime, Utc};
 use serde_json::json;
-use std::sync::Arc;
+use std::{sync::Arc, time::SystemTime};
 
 use tracing::error;
 
@@ -20,6 +20,7 @@ impl IntoResponse for AppError {
 pub struct Tasks {
     schedule_at_in_second: i32,
     retry: i16,
+    process_time_in_second: i32,
 }
 pub async fn create_task(
     State(state): State<Arc<AppState>>,
@@ -28,10 +29,13 @@ pub async fn create_task(
     if task.retry > 3 || task.retry < 0 {
         return Ok((
             StatusCode::BAD_REQUEST,
-            Json(json!({"error":"tasks retry should be atleast 1 and max 3"})),
+            Json(json!({"error":"tasks retry should be atleast 0 and max 3"})),
         ));
     }
-    let today_time_in_second = Utc::now().second() + 30;
+    let today_time_in_second = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
     if task.schedule_at_in_second < today_time_in_second as i32 {
         return Ok((
             StatusCode::BAD_REQUEST,
@@ -40,12 +44,21 @@ pub async fn create_task(
             ),
         ));
     }
+    let twenty_minute_in_second = 60 * 60 * 20;
+    if task.process_time_in_second > twenty_minute_in_second || task.process_time_in_second < 0 {
+        return Ok((
+            StatusCode::BAD_REQUEST,
+            Json(
+                json!({"error":"process_time_in_second should be less than equal to 20 minute (in second)"}),
+            ),
+        ));
+    }
     let res = sqlx::query!(
-        "INSERT INTO Tasks (schedule_at_in_second, status, output, retry, created_at) 
+        "INSERT INTO Tasks (schedule_at_in_second, status, process_time_in_second, retry, created_at) 
          VALUES ($1,$2,$3,$4,$5) RETURNING id",
-        task.schedule_at_in_second as i32,
+        task.schedule_at_in_second ,
         "ADDED",
-        "",
+        task.process_time_in_second ,
         task.retry,
         Utc::now()
     )
@@ -63,7 +76,7 @@ pub struct Task {
     pub id: i32,
     pub schedule_at_in_second: i32,
     pub status: String,
-    pub ouput: String,
+    pub process_time_in_second: String,
     pub retry: i16,
     pub created_at: DateTime<Utc>,
 }
@@ -80,7 +93,7 @@ pub async fn check_status(
         id: current_task.id,
         schedule_at_in_second: current_task.schedule_at_in_second,
         status: current_task.status,
-        ouput: current_task.output,
+        process_time_in_second: current_task.process_time_in_second.to_string(),
         retry: current_task.retry,
         created_at: current_task.created_at,
     }))
