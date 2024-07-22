@@ -1,6 +1,6 @@
 use std::{collections::HashMap, time::SystemTime};
 
-use chrono::{Timelike, Utc};
+use chrono::Utc;
 use pub_api::routes::tasks::Task;
 
 use crate::test_helper::spawn;

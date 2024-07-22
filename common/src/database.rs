@@ -1,5 +1,4 @@
 use config::{Config, File, FileFormat};
-
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -17,12 +16,8 @@ pub struct Database {
     pub database_host: String,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-pub struct EnvVariable {
-    pub database: Database,
-}
-pub fn get_configuration() -> EnvVariable {
-    let builder = Config::builder().add_source(File::new("env.yaml", FileFormat::Yaml));
+pub fn get_database() -> Database {
+    let builder = Config::builder().add_source(File::new("./common/env.yaml", FileFormat::Yaml));
     let config = builder.build().unwrap();
     config.try_deserialize().unwrap()
 }

@@ -1,0 +1,13 @@
+[workspace]
+resolver="2"
+members = [ 
+    "common",
+    "pub_api",
+    "task_producer",
+]
+[workspace.dependencies]
+serde = "1.0.204"
+serde-aux = "4.5.0"
+serde_json = "1.0.120"
+sqlx = { version = "0.7", default-features = false, features = ["runtime-tokio-rustls", "macros", "postgres", "uuid", "chrono", "migrate"] }
+config = "0.14.0"

@@ -1,8 +1,8 @@
 use std::future::IntoFuture;
 
+use common::database::{get_database, Database};
 use once_cell::sync::Lazy;
 use pub_api::{
-    configuration::{get_configuration, Database},
     startup::get_server,
     tracing::{get_subscriber, init_subscriber},
 };
@@ -45,9 +45,9 @@ pub async fn migrate_and_get_db(database: &mut Database) -> PgPool {
     connection_pool
 }
 pub async fn spawn() -> AppInfo {
-    let mut config = get_configuration();
+    let mut database = get_database();
     Lazy::force(&TRACING);
-    let db_pool = migrate_and_get_db(&mut config.database).await;
+    let db_pool = migrate_and_get_db(&mut database).await;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://localhost:{}", port);
