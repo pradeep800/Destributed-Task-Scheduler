@@ -1,6 +1,6 @@
 use anyhow::Context;
-use common::database::get_database;
 use pub_api::{
+    configuration::get_configuration,
     startup::get_server,
     tracing::{get_subscriber, init_subscriber},
 };
@@ -12,8 +12,9 @@ async fn main() {
         "info".to_string(),
         std::io::stdout,
     );
+    let database = get_configuration();
     init_subscriber(subscriber);
-    let database = get_database();
+
     let db_pool = database.get_pool().await;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await

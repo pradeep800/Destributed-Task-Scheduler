@@ -4,3 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+common = { version = "0.1.0", path = "../common" }
+sqlx.workspace = true
+tokio = { version = "1.38.1", features = ["full"] }
+chrono = { version = "0.4.38", features = ["serde"] }
+config.workspace = true
+serde.workspace = true

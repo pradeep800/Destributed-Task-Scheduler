@@ -1,3 +1,5 @@
+use std::env;
+
 use config::{Config, File, FileFormat};
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -16,11 +18,6 @@ pub struct Database {
     pub database_host: String,
 }
 
-pub fn get_database() -> Database {
-    let builder = Config::builder().add_source(File::new("./common/env.yaml", FileFormat::Yaml));
-    let config = builder.build().unwrap();
-    config.try_deserialize().unwrap()
-}
 impl Database {
     pub fn get_connecting_string(&self) -> String {
         format!(
