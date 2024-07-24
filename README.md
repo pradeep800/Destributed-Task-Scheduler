@@ -60,10 +60,7 @@ FOR UPDATE SKIP LOCKED;
 It is a simple FIFO queue which basically can be use as message broker
 why are we using sqs
 - simplicity 
-- If we didn't use this worker have to make multiple connection to database worker node can be in millions (so million connection)
-how are we using sqs in our architecture
-so we use sqs as message broker between producer and worker
-
+- If we didn't use this worker have to make multiple connection to database worker node can be in millions (so million connection)   
 
 ### Worker Service
 
@@ -75,18 +72,18 @@ Worker service consists of three main components:
    - `jwt.txt`, where the JWT is written by the init container.
 
 2. **Init Container:**
-   The init container initializes the main container for job execution, performing the following tasks:
+   here is what init container is doing
    - Polling for a single task entry from SQS.
    - Retrieving the executable file from S3.
    - Storing the retrieved S3 file into the share volume.
    - Creating a JWT and saving it in a file named `jwt.txt`.
-   - Updating `last_time_picked_at_by_worker` to the current time.
+   - add new entry at `picked_at_by_worker` to the current time.
 
 3. **Main Container:**
    The main container performs the following tasks:
-   - Executes a file providing health checks and completion updates to the "status check service". It also parses the `jwt.txt` file from the share volume.
-   - Runs the executable file from the share volume.
-   - Sends task success or failure notifications to the "status check service", which logs them in the task database using the provided JWT.
+   - Executes a file providing health checks and completion updates to the `status check service`. It also parses the `jwt.txt` file from the share volume.
+   - Runs the executable file from the share volume by code.
+   - Sends task success or failure notifications to the `status check service`, which logs them in the task database using the provided JWT.
 
     we should not trust not trust main container because it is running someone else code so basically we will give them access to things which can only change his state 
 **Why JWT?**
