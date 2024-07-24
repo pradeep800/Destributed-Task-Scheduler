@@ -6,11 +6,9 @@ The objective of this project is to create a task scheduler capable of executing
 ![Architecture Diagram](images/dark.png#gh-dark-mode-only)
 
 ## Architecture Explaination
-First, our request will go to a "public API". The API will add task detail entrie to our "task database". Then, our "task producer" will take these entries and add them to an "SQS queue". After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a "status check service" every 5 seconds. The status check service will update the health check time in a "health check database". When the worker finishes a task, it will send a request to the “status check service”, which will then update the completed_at in “task database”.
+First, our request will go to a `Public API`. The API will add task detail entrie to our `task database`. Then, our `task producer` will take these entries and add them to an `SQS queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `status check service` every 5 seconds. The status check service will update the health check time in a `health check database`. When the worker finishes a task, it will send a request to the `status check service`, which will then update the `completed_at` and `failed_at` with `failed_reason` in “task database”.
 
 ## Component Explaination
-
-
 ### Tasks Database
 This database for storing information about tasks
 #### Schema
