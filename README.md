@@ -55,7 +55,7 @@ FOR UPDATE SKIP LOCKED;
 
 
 
-##### Sqs (Simple Queue Service)
+### Sqs (Simple Queue Service)
 
 It is a simple FIFO queue which basically can be use as message broker
 why are we using sqs
@@ -65,30 +65,34 @@ how are we using sqs in our architecture
 so we use sqs as message broker between producer and worker
 
 
-##### Worker Service
+### Worker Service
 
-Worker service is made up of 3 things 
-1. Share volume:- basically share volume is volume share between init container and main container here is what share volumne is storing
-	- the file which we want to execute
-	- jwt.txt file where jwt is written by init conatiner 
-2. Init container  :- which will basically help it do initialize container for running jobs it will do given below things 
-	 - it will poll for  one task entry from sqs
-	 - it will get executable file from s3
-	 - it will store that s3 file into share volume
-	 - It will create jwt and put it into file called jwt.txt 
-	 - It will change last_time_picked_at_by_worker to current time
-	 
-Why JWT? 
+Worker service consists of three main components:
 
-Because our worker node's main container (houses our health check and completion logic. It's crucial for us to ensure secure communication since we don't fully trust the worker node. Therefore, we provide tokens to the worker node, restricting its requests solely to itself.
+1. **Share Volume:**
+   Share volume is the storage shared between the init container and the main container. It stores:
+   - The executable file intended for execution.
+   - `jwt.txt`, where the JWT is written by the init container.
 
-3.  Main container :- it will do given below things
-      - Run a file which is giving health check and completion update to "status check service"  and also parse file name jwt.txt which is fromshare volumne
-      - Running the Executable file from share volume 
-      - when our task get failed or successful we will send it to "status check service" which will add them to "task database with given JWT
+2. **Init Container:**
+   The init container initializes the main container for job execution, performing the following tasks:
+   - Polling for a single task entry from SQS.
+   - Retrieving the executable file from S3.
+   - Storing the retrieved S3 file into the share volume.
+   - Creating a JWT and saving it in a file named `jwt.txt`.
+   - Updating `last_time_picked_at_by_worker` to the current time.
+
+3. **Main Container:**
+   The main container performs the following tasks:
+   - Executes a file providing health checks and completion updates to the "status check service". It also parses the `jwt.txt` file from the share volume.
+   - Runs the executable file from the share volume.
+   - Sends task success or failure notifications to the "status check service", which logs them in the task database using the provided JWT.
+
     we should not trust not trust main container because it is running someone else code so basically we will give them access to things which can only change his state 
+**Why JWT?**
 
-##### Health check database
+Because our worker node's main container houses our health check and completion logic. It's crucial for us to ensure secure communication since we don't fully trust the worker node. Therefore, we provide tokens to the worker node, restricting its requests solely to itself.
+### Health check database
 we are going to use this database for collecting health information
 
 **schema**
@@ -105,29 +109,24 @@ we are going to use this database for collecting health information
 (last_time_health_check_in_second,task_updated) => 
 - in "remove health check" we are removing the entries 3 minute which are 3 minute late to update their last_time_health_in_second
 - In "failed updatator" we are going to use both or key in where clause so i am making in index
+### Status Checker Service
+Every worker pings the status check service every 5 seconds for health checks. When a task is completed, the worker sends its status. Here's what the status checker service does:
+
+1. Create 2 API endpoints accessible to the main worker:
+   - **POST /health_check:** Sends health information with the body `{jwt: string}`.
+   - **POST /update_status:** Updates the worker's state by modifying `failed_at` or `completed_at` in the "task database".
+
+2. Continuously update `last_time_health_check_in_second` to the current time.
+
+3. When a task completes or fails, update the "health check database":
+   - Set `task_updated` to true.
+   - Update `completed_at` or `failed_at` in the "task database".
+
+### Retry and Failed Updator Service
+This service identifies tasks exceeding a 30-second health check interval as dead tasks, updating the "task database" with `failed_at` and a reason. If the task has retries remaining, it queues it in SQS with `current_retry + 1`.
+
+### Remove Health Check Database Entries (Remove HS DB Entries)
+This cron job executes every 3 minutes to remove obsolete entries from the health check database that are no longer needed.
 
 
-##### Status Checker Service
-Every  worker will keep pining the state check service in every 5 second for health check and when some task got finished worker will send the status of task
-here is what status checker service is going to do
-1. we will create 2 api endpoint which are rechable by main worker
-    - POST health_check : - for sending their information about helath 
-     body : {jwt:string}
-     - POST update_status : for updating the state of our worker which we can do by updating our failed_at or completed_at in "task database"
-1. keep updating their last_time_health_check_in_second to their new time
-2. when our task send us complete or failed we'll update the "health check database" and put task_updated as true and in "task database" we will update "completed_at" or failed_at
-
-##### Retry and Failed Updator Service
-In this service if last_time_health_check_in_second not under 30 second limit we will consider it as dead task and update our "task database" with failed_at and with reason
-and if it have retry left we will not do anything we will just put it in sqs queue and add current_retry +1 
-
-##### Remove Health Check database entries (remove HS DB entries)
-This is a cron job which will execute in every 3 minute to remove the entries which are old and not needed in database 
-
-
-##### How i am going to maintain SLA
-
-
-
-
-
+### How i am going to maintain SLA
