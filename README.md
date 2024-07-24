@@ -83,7 +83,8 @@ Worker service consists of three main components:
    - Runs the executable file from the share volume by code.
    - Sends task success or failure notifications to the `status check service`, which logs them in the task database using the provided JWT.
 
-    we should not trust not trust main container because it is running someone else code so basically we will give them access to things which can only change his state 
+    we should not trust not trust main container because it is running someone else code so basically we will give them access to things which can only change own state 
+
 **Why JWT?**
 
 Because our worker node's main container houses our health check and completion logic. It's crucial for us to ensure secure communication since we don't fully trust the worker node. Therefore, we provide tokens to the worker node, restricting its requests solely to itself.
@@ -96,20 +97,20 @@ we are going to use this database for collecting health information
 | -------------------------------- | -------- |
 | id                               | int (PM) |
 | task_id                          | int      |
-| last_time_health_check_in_second | int      |
+| last_time_health_check           | timestamptz |
 | task_updated                     | bool     |
 
 
 **Index**
-(last_time_health_check_in_second,task_updated) => 
-- in `remove health check` we are removing the entries 3 minute which are 3 minute late to update their last_time_health_in_second
+(last_time_health_check,task_updated) => 
+- in `remove health check` we are removing the entries 3 minute which are 3 minute late to update their last_time_health
 - In `failed updatator` we are going to use both or key in where clause so i am making in index
 ### Status Checker Service
 Every worker pings the status check service every 5 seconds for health checks. When a task is completed or failed, the worker sends its status and this service will update accordingly Here's what the `status checker service` does:
 1. Create 2 API endpoints accessible to the main worker:
    - **POST /health_check:** Sends health information with the body `{jwt: string}`.
    - **POST /update_status:** update the status of worker
-2. when it send request to health_check update `last_time_health_check_in_second` to the current time.
+2. when it send request to health_check update `last_time_health_check` to the current time.
 3. When a task completes or fails 
    - update the `health check database` Set `task_updated` to true.
    - Update `completed_at` or `failed_at` in the `task database`.
