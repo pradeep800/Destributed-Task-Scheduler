@@ -5,10 +5,10 @@ The objective of this project is to create a task scheduler capable of executing
 ![Architecture Diagram](images/light.png#gh-light-mode-only)
 ![Architecture Diagram](images/dark.png#gh-dark-mode-only)
 
-## Architecture Explaination
-First, our request will go to a `Public API`. The API will add task detail entrie to our `task database`. Then, our `task producer` will take these entries and add them to an `SQS queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `status check service` every 5 seconds. The status check service will update the health check time in a `health check database`. When the worker finishes a task, it will send a request to the `status check service`, which will then update the `completed_at` and `failed_at` with `failed_reason` in “task database”.
+## Architecture Explanation
+First, our request will go to a `Public API`. The API will add task detail entry to our `task database`. Then, our `task producer` will take these entries and add them to an `SQS queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `status check service` every 5 seconds. The status check service will update the health check time in a `health check database`. When the worker finishes a task, it will send a request to the `status check service`, which will then update the `completed_at` and `failed_at` with `failed_reason` in `task database`.
 
-## Component Explaination
+## Component Explanation
 ### Tasks Database
 This database for storing information about tasks
 #### Schema
@@ -38,7 +38,7 @@ These APIs will perform 4 functions:
 - **Check file posted (`task/fileposted/check`):** Checks if the file has been posted yet.
  
 ### producer
-The producer retrieves task information from the "task database," places them into a queue, and updates the "picked_at_by_producer" array in the "task database" with timestamps.
+The producer retrieves task information from the `task database` places them into a queue, and updates the `picked_at_by_producer` array in the `task database` with timestamps.
 
 **SQL Query for Querying Information with Locking:**
 
@@ -102,8 +102,8 @@ we are going to use this database for collecting health information
 
 **Index**
 (last_time_health_check_in_second,task_updated) => 
-- in "remove health check" we are removing the entries 3 minute which are 3 minute late to update their last_time_health_in_second
-- In "failed updatator" we are going to use both or key in where clause so i am making in index
+- in `remove health check` we are removing the entries 3 minute which are 3 minute late to update their last_time_health_in_second
+- In `failed updatator` we are going to use both or key in where clause so i am making in index
 ### Status Checker Service
 Every worker pings the status check service every 5 seconds for health checks. When a task is completed or failed, the worker sends its status and this service will update accordingly Here's what the `status checker service` does:
 1. Create 2 API endpoints accessible to the main worker:
@@ -114,8 +114,8 @@ Every worker pings the status check service every 5 seconds for health checks. W
    - update the `health check database` Set `task_updated` to true.
    - Update `completed_at` or `failed_at` in the `task database`.
 # Think about what will happen when it failed and retry are there
-### Retry and Failed Updator Service
-This service identifies tasks exceeding a 30-second health check interval as dead tasks, updating the "task database" with `failed_at` and a `failed_reason`. If the task has retries remaining, it queues it in SQS with `current_retry + 1` and add new `picked_at_by_producer` entry in "task database".
+### Retry and Failed Updater Service
+This service identifies tasks exceeding a 30-second health check interval as dead tasks, updating the `task database` with `failed_at` and a `failed_reason`. If the task has retries remaining, it queues it in SQS with `current_retry + 1` and add new `picked_at_by_producer` entry in `task database`.
 
 ### Remove Health Check Database Entries (Remove HS DB Entries)
 This cron job executes every 3 minutes to remove obsolete entries from the health check database that are no longer needed.
