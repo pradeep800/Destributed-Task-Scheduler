@@ -2,4 +2,4 @@
 pub struct Kafka {
     pub host: String,
 }
-pub fn get_bootstrap_server() -> String {}
+impl Kafka {}
