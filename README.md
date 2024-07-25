@@ -20,8 +20,8 @@ This database for storing information about tasks
 | picked_at_by_producer | timestamptz[]              |
 | picked_at_by_worker   | timestamptz[]              |
 | completed_at          | timestamptz                |
-| failed_at             | timestamptz                |
-| failed_reason         | text                       |
+| failed_at             | timestamptz[]                |
+| failed_reason         | text[]                       |
 | total_retry           | 0-3 (smallint)             |
 | current_retry         | 0.3 (smallint) [default 0] |
 | file_uploaded         | bool [default false]       |
@@ -115,7 +115,9 @@ Every worker will send status check in every 5 seconds and when worker will fini
 Here are 2 things `Status Check Service` does
 - Provide API for updating `last_time_health_check` in `Health Check Database`
 - Provide API for updating the status of worker in `Task Db`
+
 **Working of `Status Check Service`**
+
 - **POST /health_check:** it will update the value of last_time_health_check to current timestamp.
 
 ```sql
@@ -137,35 +139,62 @@ WHERE id = :task_id;
 ```
 
 if our worker said our task got failed
-we'll check if total_retry==current_retry
+we'll check if total_retry = current_retry
 
 ```sql
 UPDATE tasks
     SET failed_at = NOW(),
-        failed_reason = :failure_reason
+        failed_at = array_append(failed_at, now()),
+        failed_reason = array_append(failed_reason, :reason)
     WHERE id = :task_id
     AND total_retry = current_retry
 ```
 
 
-if our total_retry>current_retry
+if our total_retry > current_retry
 
 ```sql
 UPDATE tasks
 SET is_producible = true,
-    current_retry = current_retry + 1
+    current_retry = current_retry + 1,
+    failed_at = array_append(failed_at, now()),
+    failed_reason = array_append(failed_reason, :reason)
 WHERE id = :task_id
-AND current_retry < total_retry
+AND current_retry < total_retry;
 ```
 
 ### Retry and Failed Updater Service
-This service identifies tasks exceeding a 30-second health check interval as dead tasks, updating the `task database` with `failed_at` and a `failed_reason`. If the task has retries remaining, it queues it in `SQS` with `current_retry + 1` and add new `picked_at_by_producer` entry in `task database`.
+This service identifies tasks exceeding a 20-second (4 health-check failed) health check interval as dead worker, updating the `task database` with `failed_at` and a `failed_reason`.
 
+If the task has retries remaining
+- we'll check if total_retry = current_retry
+
+```sql
+UPDATE tasks
+    SET failed_at = NOW(),
+        failed_at = array_append(failed_at, now()),
+        failed_reason = array_append(failed_reason, :reason)
+    WHERE id = :task_id
+    AND total_retry = current_retry
+```
+
+
+- if our total_retry > current_retry
+
+```sql
+UPDATE tasks
+SET is_producible = true,
+    current_retry = current_retry + 1,
+    failed_at = array_append(failed_at, now()),
+    failed_reason = array_append(failed_reason, :reason)
+WHERE id = :task_id
+AND current_retry < total_retry;
+`
 ### Remove Health Check Database Entries (Remove HS DB Entries)
-This cron job executes in every 10 minutes to remove obsolete entries from the `Health Check Database` that are no longer needed. basically entries with `last_time_health_check` less than equal now()-30
+This cron job executes in every 10 minutes to remove obsolete entries from the `Health Check Database` that are no longer needed. basically entries with `last_time_health_check` less than equal now()-5 minute
 **SQL query**
 ```sql
 DELETE FROM health_check 
-WHERE last_time_health_check <= NOW() - INTERVAL '30 seconds';
+WHERE last_time_health_check <= NOW() - INTERVAL '5 minutes';
 ```
 
