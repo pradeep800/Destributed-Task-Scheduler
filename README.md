@@ -6,7 +6,7 @@ The objective of this project is to create a task scheduler capable of executing
 ![Architecture Diagram](images/dark.png#gh-dark-mode-only)
 
 ## Architecture Explanation
-First, our request will go to a `Public API`. The API will add task detail entry to our `task database`. Then, our `task producer` will take these entries and add them to an `SQS queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `status check service` every 5 seconds. The status check service will update the health check time in a `health check database`. When the worker finishes a task, it will send a request to the `status check service`, which will then update the `completed_at` and `failed_at` with `failed_reason` in `task database`.
+First, our request will go to a `Public API`. The API will add task detail entry to our `Task @atabase`. Then, our `Task Producer` will take these entries and add them to an `SQS Queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `Status Check Service` every 5 seconds. The status check service will update the health check time in a `Health Check Database`. When the worker finishes a task, it will send a request to the `Status Check Service`, which will then update the `completed_at` or `failed_at` with `failed_reason` in `Task Database`.
 
 ## Component Explanation
 ### Tasks Database
@@ -16,18 +16,19 @@ This database for storing information about tasks
 | Attribute             | Keytype                    |
 | --------------------- | -------------------------- |
 | id                    | Integer (PK)               |
-| schedule_at           | timestamptz\|null           |
-| picked_at_by_producer | timestamptz[]               |
-| picked_at_by_worker   | timestamptz[]               |
-| completed_at          | timestamptz                 |
-| failed_at             | timestamptz                 |
+| schedule_at           | timestamptz\|null          |
+| picked_at_by_producer | timestamptz[]              |
+| picked_at_by_worker   | timestamptz[]              |
+| completed_at          | timestamptz                |
+| failed_at             | timestamptz                |
 | failed_reason         | text                       |
 | total_retry           | 0-3 (smallint)             |
 | current_retry         | 0.3 (smallint) [default 0] |
-| file_uploaded         | bool                       |
+| file_uploaded         | bool [default false]       |
+| is_producible         | bool [default true]        |
 
 #### Index
-**schedule_at** : Since our producer always checks the schedule promptly to expedite production.
+**schedule_at** : because our `Producer` will use `schedule_at` in where clause
 
 ### Public API
 These APIs will perform 4 functions:
@@ -38,36 +39,39 @@ These APIs will perform 4 functions:
 - **Check file posted (`task/fileposted/check`):** Checks if the file has been posted yet.
  
 ### producer
-The producer retrieves task information from the `task database` places them into a queue, and updates the `picked_at_by_producer` array in the `task database` with timestamps.
+basically producer will get data from `Task Db` and publish them into `SQS`
+**Working of Producer**
+- Lock the database get first 20 entry from `Task db`
+- Publish these entry to `SQS` 
+- Add new entry in `picked_at_by_producer` in `Task Database` with current timestamp and `is_producible` to `false`.
 
-**SQL Query for Querying Information with Locking:**
-
+**SQL Query**
 ```sql
 SELECT *
-FROM tasks
-WHERE schedule_at_in_second >= NOW() 
-  AND schedule_at_in_second <= NOW() + INTERVAL 30 SECOND
-  AND JSON_LENGTH(picked_at_by_producer) = 0
+FROM Tasks
+WHERE schedule_at<= NOW() + INTERVAL 30 SECOND
+AND is_producable = true  
+AND file_uploaded = true 
+Limit 20
 FOR UPDATE SKIP LOCKED;
 ```
 
+- `is_producible` is for whatever you have to make something producible you will make it true this can be used in other services we can just change this attribute to `false` to `true` and our producer will start producing it again
 
 
-### Sqs (Simple Queue Service)
+### SQS (Simple Queue Service)
 
 It is a simple FIFO queue which basically can be use as message broker
-why are we using sqs
+why are we using `SQS`
 - simplicity 
-- If we didn't use this worker have to make multiple connection to database worker node can be in millions (so million connection)   
+- If we didn't use `SQS` worker have to make multiple connection to database and worker node can be in millions (so million connection)   
 
 ### Worker Service
-
 Worker service consists of three main components:
-
 1. **Share Volume:**
    Share volume is the storage shared between the init container and the main container. It stores:
-   - The executable file intended for execution.
-   - `jwt.txt`, where the JWT is written by the init container.
+   - The executable file.
+   - `jwt.txt`.
 
 2. **Init Container:**
    here is what init container is doing
@@ -79,15 +83,15 @@ Worker service consists of three main components:
 
 3. **Main Container:**
    The main container performs the following tasks:
-   - Executes a file providing health checks and completion updates to the `status check service`. It also parses the `jwt.txt` file from the share volume.
+   - Executes a file providing health checks and completion updates to the `Status Check Service`. It also parses the `jwt.txt` file from the share volume.
    - Runs the executable file from the share volume by code.
-   - Sends task success or failure notifications to the `status check service`, which logs them in the task database using the provided JWT.
+   - Sends task success or failure notifications to the `Status Check Service`.
 
-    we should not trust not trust main container because it is running someone else code so basically we will give them access to things which can only change own state 
 
 **Why JWT?**
 
 Because our worker node's main container houses our health check and completion logic. It's crucial for us to ensure secure communication since we don't fully trust the worker node. Therefore, we provide tokens to the worker node, restricting its requests solely to itself.
+
 ### Health check database
 we are going to use this database for collecting health information
 
@@ -103,23 +107,65 @@ we are going to use this database for collecting health information
 
 **Index**
 (last_time_health_check,task_updated) => 
-- in `remove health check` we are removing the entries 3 minute which are 3 minute late to update their last_time_health
-- In `failed updatator` we are going to use both or key in where clause so i am making in index
+- in the `Remove Health Check Database Entry` operation, we remove entries from the database for tasks that workers have already completed.
+- In `Retry and Failed Updater` we are going to use both or key in where clause so I am making in index
+
 ### Status Checker Service
-Every worker pings the status check service every 5 seconds for health checks. When a task is completed or failed, the worker sends its status and this service will update accordingly Here's what the `status checker service` does:
-1. Create 2 API endpoints accessible to the main worker:
-   - **POST /health_check:** Sends health information with the body `{jwt: string}`.
-   - **POST /update_status:** update the status of worker
-2. when it send request to health_check update `last_time_health_check` to the current time.
-3. When a task completes or fails 
-   - update the `health check database` Set `task_updated` to true.
-   - Update `completed_at` or `failed_at` in the `task database`.
-# Think about what will happen when it failed and retry are there
+Every worker will send status check in every 5 seconds and when worker will finish it job it will send it status to our `Status Checker Service`
+Here are 2 things `Status Check Service` does
+- Provide API for updating `last_time_health_check` in `Health Check Database`
+- Provide API for updating the status of worker in `Task Db`
+**Working of `Status Check Service`**
+- **POST /health_check:** it will update the value of last_time_health_check to current timestamp.
+
+```sql
+INSERT INTO HealthCheckEntries (task_id, last_time_health_check, task_updated)
+VALUES ($1, NOW(), true)
+ON CONFLICT (task_id)
+DO UPDATE SET
+  last_time_health_check = NOW(),
+  task_updated = true;
+```
+
+- **POST /update_status:**  
+if our worker send us we successfully completed the task
+
+```sql
+UPDATE tasks
+SET completed_at = NOW()
+WHERE id = :task_id;
+```
+
+if our worker said our task got failed
+we'll check if total_retry==current_retry
+
+```sql
+UPDATE tasks
+    SET failed_at = NOW(),
+        failed_reason = :failure_reason
+    WHERE id = :task_id
+    AND total_retry = current_retry
+```
+
+
+if our total_retry>current_retry
+
+```sql
+UPDATE tasks
+SET is_producible = true,
+    current_retry = current_retry + 1
+WHERE id = :task_id
+AND current_retry < total_retry
+```
+
 ### Retry and Failed Updater Service
-This service identifies tasks exceeding a 30-second health check interval as dead tasks, updating the `task database` with `failed_at` and a `failed_reason`. If the task has retries remaining, it queues it in SQS with `current_retry + 1` and add new `picked_at_by_producer` entry in `task database`.
+This service identifies tasks exceeding a 30-second health check interval as dead tasks, updating the `task database` with `failed_at` and a `failed_reason`. If the task has retries remaining, it queues it in `SQS` with `current_retry + 1` and add new `picked_at_by_producer` entry in `task database`.
 
 ### Remove Health Check Database Entries (Remove HS DB Entries)
-This cron job executes every 3 minutes to remove obsolete entries from the health check database that are no longer needed.
+This cron job executes in every 10 minutes to remove obsolete entries from the `Health Check Database` that are no longer needed. basically entries with `last_time_health_check` less than equal now()-30
+**SQL query**
+```sql
+DELETE FROM health_check 
+WHERE last_time_health_check <= NOW() - INTERVAL '30 seconds';
+```
 
-
-### How i am going to maintain SLA
