@@ -6,7 +6,7 @@ The objective of this project is to create a task scheduler capable of executing
 ![Architecture Diagram](images/dark.png#gh-dark-mode-only)
 
 ## Architecture Explanation
-First, our request will go to a `Public API`. The API will add task detail entry to our `Task @atabase`. Then, our `Task Producer` will take these entries and add them to an `SQS Queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `Status Check Service` every 5 seconds. The status check service will update the health check time in a `Health Check Database`. When the worker finishes a task, it will send a request to the `Status Check Service`, which will then update the `completed_at` or `failed_at` with `failed_reason` in `Task Database`.
+First, our request will go to a `Public API`. The API will add task detail entry to our `Task @atabase`. Then, our `Task Producer` will take these entries and add them to an `SQS Queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `Status Check Service` every 5 seconds. The status check service will update the health check time in a `Health Check Database`. When the worker finishes a task, it will send a request to the `Status Check Service`, which will then update the `successful_at` or `failed_at` with `failed_reason` in `Task Database`.
 
 ## Component Explanation
 ### Tasks Database
@@ -19,7 +19,7 @@ This database for storing information about tasks
 | schedule_at           | timestamptz\|null          |
 | picked_at_by_producer | timestamptz[]              |
 | picked_at_by_worker   | timestamptz[]              |
-| completed_at          | timestamptz                |
+| successful_at         | timestamptz                |
 | failed_at             | timestamptz[]                |
 | failed_reason         | text[]                       |
 | total_retry           | 0-3 (smallint)             |
@@ -102,11 +102,11 @@ we are going to use this database for collecting health information
 | id                               | int (PM) |
 | task_id                          | int      |
 | last_time_health_check           | timestamptz |
-| task_updated                     | bool     |
+| task_completed                   | bool     |
 
 
 **Index**
-(last_time_health_check,task_updated) => 
+(last_time_health_check,task_completed) => 
 - in the `Remove Health Check Database Entry` operation, we remove entries from the database for tasks that workers have already completed.
 - In `Retry and Failed Updater` we are going to use both or key in where clause so I am making in index
 
@@ -121,24 +121,30 @@ Here are 2 things `Status Check Service` does
 - **POST /health_check:** it will update the value of last_time_health_check to current timestamp.
 
 ```sql
-INSERT INTO HealthCheckEntries (task_id, last_time_health_check, task_updated)
+INSERT INTO HealthCheckEntries (task_id, last_time_health_check, task_completed)
 VALUES ($1, NOW(), true)
 ON CONFLICT (task_id)
 DO UPDATE SET
   last_time_health_check = NOW(),
-  task_updated = true;
+  task_completed= true;
 ```
 
-- **POST /update_status:**  
-if our worker send us we successfully completed the task
+- **POST /update_status:** it will update the status of worker 
+
+If our worker send us we successfully completed the task
 
 ```sql
+-- with this query Retry and Failed updater service will not select this
+UPDATE your_table_name
+SET task_completed= true
+WHERE task_id = :task_id;
+
 UPDATE tasks
-SET completed_at = NOW()
+SET successful_at= NOW()
 WHERE id = :task_id;
 ```
 
-if our worker said our task got failed
+If our worker said our task got failed
 we'll check if total_retry = current_retry
 
 ```sql
@@ -151,7 +157,7 @@ UPDATE tasks
 ```
 
 
-if our total_retry > current_retry
+If our total_retry > current_retry
 
 ```sql
 UPDATE tasks
@@ -166,16 +172,31 @@ AND current_retry < total_retry;
 ### Retry and Failed Updater Service
 This service identifies tasks exceeding a 20-second (4 health-check failed) health check interval as dead worker, updating the `task database` with `failed_at` and a `failed_reason`.
 
+Sql query for checking task which didn't send health-check for 20-second
+
+```sql
+SELECT *
+FROM health_check 
+WHERE last_time_health_check < NOW() - INTERVAL '20 seconds'
+AND task_completed= true;
+```
+
 If the task has retries remaining
 - we'll check if total_retry = current_retry
 
 ```sql
+-- with this query Retry and Failed updater service will not select this
+UPDATE your_table_name
+SET task_completed= true
+WHERE task_id = :task_id;
+
 UPDATE tasks
     SET failed_at = NOW(),
         failed_at = array_append(failed_at, now()),
         failed_reason = array_append(failed_reason, :reason)
     WHERE id = :task_id
     AND total_retry = current_retry
+
 ```
 
 
@@ -189,12 +210,15 @@ SET is_producible = true,
     failed_reason = array_append(failed_reason, :reason)
 WHERE id = :task_id
 AND current_retry < total_retry;
-`
+```
 ### Remove Health Check Database Entries (Remove HS DB Entries)
-This cron job executes in every 10 minutes to remove obsolete entries from the `Health Check Database` that are no longer needed. basically entries with `last_time_health_check` less than equal now()-5 minute
+
+This cron job executes in every 10 minutes to remove obsolete entries from the `Health Check Database` that are no longer needed. 
+
 **SQL query**
+
 ```sql
 DELETE FROM health_check 
-WHERE last_time_health_check <= NOW() - INTERVAL '5 minutes';
+WHERE task_completed= true;
 ```
 
