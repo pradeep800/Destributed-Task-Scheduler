@@ -6,7 +6,7 @@ The objective of this project is to create a task scheduler capable of executing
 ![Architecture Diagram](images/dark.png#gh-dark-mode-only)
 
 ## Architecture Explanation
-First, our request will go to a `Public API`. The API will add task detail entry to our `Task @atabase`. Then, our `Task Producer` will take these entries and add them to an `SQS Queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `Status Check Service` every 5 seconds. The status check service will update the health check time in a `Health Check Database`. When the worker finishes a task, it will send a request to the `Status Check Service`, which will then update the `successful_at` or `failed_at` with `failed_reason` in `Task Database`.
+First, our request will go to a `Public API`. The API will add task detail entry to our `Task Database`. Then, our `Task Producer` will take these entries and add them to an `SQS Queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `Status Check Service` in every 5 seconds. The `Status Check Service` will update the health check time in a `Health Check Database`. When the worker finishes a task, it will send a request to the `Status Check Service`, which will then update the `successful_at` or `failed_at` with `failed_reason` in `Task Database`.
 
 ## Component Explanation
 ### Tasks Database
@@ -23,6 +23,7 @@ This database for storing information about tasks
 | failed_at             | timestamptz[]                |
 | failed_reason         | text[]                       |
 | total_retry           | 0-3 (smallint)             |
+| tracing_id            | varchar(256)               |
 | current_retry         | 0.3 (smallint) [default 0] |
 | file_uploaded         | bool [default false]       |
 | is_producible         | bool [default true]        |
@@ -39,9 +40,9 @@ These APIs will perform 4 functions:
 - **Check file posted (`task/fileposted/check`):** Checks if the file has been posted yet.
  
 ### producer
-basically producer will get data from `Task Db` and publish them into `SQS`
+basically producer will get data from `Task Database` and publish them into `SQS`
 **Working of Producer**
-- Lock the database get first 20 entry from `Task db`
+- Lock the database get first 20 entry from `Task Database`
 - Publish these entry to `SQS` 
 - Add new entry in `picked_at_by_producer` in `Task Database` with current timestamp and `is_producible` to `false`.
 
@@ -198,8 +199,6 @@ UPDATE tasks
     AND total_retry = current_retry
 
 ```
-
-
 - if our total_retry > current_retry
 
 ```sql
@@ -211,6 +210,7 @@ SET is_producible = true,
 WHERE id = :task_id
 AND current_retry < total_retry;
 ```
+
 ### Remove Health Check Database Entries (Remove HS DB Entries)
 
 This cron job executes in every 10 minutes to remove obsolete entries from the `Health Check Database` that are no longer needed. 
@@ -221,4 +221,9 @@ This cron job executes in every 10 minutes to remove obsolete entries from the `
 DELETE FROM health_check 
 WHERE task_completed= true;
 ```
+### Things to consider before using this service 
 
+1. Your given binary should be idempotent 
+2. It will execute our under 1 minute
+3. Maximum task execution time is 20 minute
+4. Retry will happen under 1 minute
