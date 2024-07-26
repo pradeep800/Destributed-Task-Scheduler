@@ -9,4 +9,5 @@ serde-aux = {workspace=true}
 serde_json = {workspace=true}
 sqlx = {workspace=true}
 config = {workspace=true}
-rdkafka.workspace = true
+aws-config ={workspace=true} 
+aws-sdk-s3={workspace=true}

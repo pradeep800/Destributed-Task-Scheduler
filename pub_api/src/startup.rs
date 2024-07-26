@@ -1,3 +1,5 @@
+use aws_config::{BehaviorVersion, Region};
+use aws_sdk_s3::{config::Credentials, Client};
 use axum::{
     extract::Request,
     routing::{get, post},
@@ -11,11 +13,15 @@ use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{error, info_span, Span};
 
 use crate::{
-    routes::tasks::{check_status, create_task},
+    routes::{check_status, create_sign_url, create_task, upload_status},
     state::AppState,
 };
 
-pub fn get_server(listener: TcpListener, db_pool: PgPool) -> Serve<Router, Router> {
+pub fn get_server(
+    listener: TcpListener,
+    db_pool: PgPool,
+    config: crate::configuration::Config,
+) -> Serve<Router, Router> {
     let tracing_layer = TraceLayer::new_for_http()
         .make_span_with(|request: &Request<_>| {
             let request_id = uuid::Uuid::new_v4();
@@ -31,12 +37,17 @@ pub fn get_server(listener: TcpListener, db_pool: PgPool) -> Serve<Router, Route
                 error!(error = %err);
             },
         );
+    let share_state = Arc::new(AppState {
+        db_pool,
+        config: Arc::new(config),
+    });
 
-    let share_state = Arc::new(AppState { pool: db_pool });
     let router = Router::new()
         .route("/health-check", get(health_check))
         .route("/task/create", post(create_task))
         .route("/task/status", post(check_status))
+        .route("/signurl/create", post(create_sign_url))
+        .route("/file/status", post(upload_status))
         .layer(tracing_layer)
         .with_state(share_state);
 

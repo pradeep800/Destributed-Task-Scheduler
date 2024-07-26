@@ -17,14 +17,14 @@ This database for storing information about tasks
 | --------------------- | -------------------------- |
 | id                    | Integer (PK)               |
 | schedule_at           | timestamptz\|null          |
-| picked_at_by_producer | timestamptz[]              |
-| picked_at_by_worker   | timestamptz[]              |
+| picked_at_by_producers| timestamptz[]              |
+| picked_at_by_workers  | timestamptz[]              |
 | successful_at         | timestamptz                |
-| failed_at             | timestamptz[]                |
-| failed_reason         | text[]                       |
+| failed_ats            | timestamptz[]                |
+| failed_reasons        | text[]                       |
 | total_retry           | 0-3 (smallint)             |
-| tracing_id            | varchar(256)               |
 | current_retry         | 0.3 (smallint) [default 0] |
+| tracing_id            | varchar(256)               |
 | file_uploaded         | bool [default false]       |
 | is_producible         | bool [default true]        |
 
@@ -37,7 +37,7 @@ These APIs will perform 4 functions:
 - **Create task (`task/create`):** For creating tasks.
 - **Check status (`task/status`):** For checking the status.
 - **Create sign URL (`signurl/create`):** Generates a sign URL for a specific task.
-- **Check file posted (`task/fileposted/check`):** Checks if the file has been posted yet.
+- **Check file posted (`file/status`):** Checks if the file has been posted yet.
  
 ### producer
 basically producer will get data from `Task Database` and publish them into `SQS`
@@ -155,6 +155,7 @@ UPDATE tasks
         failed_reason = array_append(failed_reason, :reason)
     WHERE id = :task_id
     AND total_retry = current_retry
+    FOR UPDATE
 ```
 
 
@@ -168,6 +169,7 @@ SET is_producible = true,
     failed_reason = array_append(failed_reason, :reason)
 WHERE id = :task_id
 AND current_retry < total_retry;
+FOR UPDATE
 ```
 
 ### Retry and Failed Updater Service

@@ -1,33 +1,29 @@
-use std::collections::HashMap;
-use std::time::SystemTime;
+use chrono::{Duration, Utc};
+use serde_json::json;
 
 use crate::test_helper::spawn;
 #[derive(serde::Serialize, serde::Deserialize)]
 struct SucessResponse {
     id: i32,
-    status: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
 struct ErrorResponse {
     error: String,
 }
+
 #[tokio::test]
 async fn sucessfully_create_a_task() {
     let app = spawn().await;
     let client = reqwest::Client::new();
-    let mut body = HashMap::new();
-    body.insert("retry", 3);
-    let second = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-        + 30;
-    body.insert("schedule_at_in_second", second);
-    body.insert("process_time_in_second", 2 * 60 * 60);
+    let create_task_body = json!({
+        "retry": 3,
+        "schedule_at": Utc::now() + Duration::minutes(1),
+    });
+
     let res = client
         .post(format!("{}/task/create", app.address))
-        .json(&body)
+        .json(&create_task_body)
         .send()
         .await
         .expect("Request failed posting request to creating task");
@@ -43,18 +39,13 @@ async fn sucessfully_create_a_task() {
     assert_eq!(task_db[0].id, task_res.id);
 }
 #[tokio::test]
-async fn more_retry_than() {
+async fn more_retry_than_3() {
     let app = spawn().await;
     let client = reqwest::Client::new();
-    let mut body = HashMap::new();
-    body.insert("retry", 4);
-    body.insert("process_time_in_second", 2 * 60 * 60);
-    let second = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-        + 30;
-    body.insert("schedule_at_in_second", second);
+    let body = json!({
+        "retry": 4,
+        "schedule_at": Utc::now() + Duration::minutes(1),
+    });
     let res = client
         .post(format!("{}/task/create", app.address))
         .json(&body)
@@ -68,19 +59,13 @@ async fn more_retry_than() {
 }
 
 #[tokio::test]
-async fn less_retry_than() {
+async fn less_retry_than_0() {
     let app = spawn().await;
     let client = reqwest::Client::new();
-    let mut body: HashMap<&str, i32> = HashMap::new();
-    body.insert("retry", -1);
-    body.insert("process_time_in_second", 2 * 60 * 60);
-
-    let second = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-        + 30;
-    body.insert("schedule_at_in_second", second as i32);
+    let body = json!({
+        "retry": -1,
+        "schedule_at": Utc::now() + Duration::minutes(1),
+    });
     let res = client
         .post(format!("{}/task/create", app.address))
         .json(&body)
@@ -96,15 +81,10 @@ async fn less_retry_than() {
 async fn wrong_schedule_time() {
     let app = spawn().await;
     let client = reqwest::Client::new();
-    let mut body = HashMap::new();
-    body.insert("retry", 2);
-    body.insert("process_time_in_second", 2 * 60 * 60);
-    let second = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-        - 30;
-    body.insert("schedule_at_in_second", second as i32);
+    let body = json!({
+        "retry": 1,
+        "schedule_at": Utc::now()-Duration::minutes(1),
+    });
     let res = client
         .post(format!("{}/task/create", app.address))
         .json(&body)
@@ -116,34 +96,5 @@ async fn wrong_schedule_time() {
     assert_eq!(
         res_json.error,
         "schedule_at_in_second should be alteast greater than now (in server)"
-    );
-}
-
-#[tokio::test]
-async fn process_time_in_second_more_than_20_minute() {
-    let app = spawn().await;
-    let client = reqwest::Client::new();
-    let mut body = HashMap::new();
-    body.insert("retry", 0);
-
-    body.insert("process_time_in_second", 21 * 60 * 60);
-    let second = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-        + 30;
-    body.insert("schedule_at_in_second", second as i32);
-
-    let res = client
-        .post(format!("{}/task/create", app.address))
-        .json(&body)
-        .send()
-        .await
-        .expect("Request failed posting request to creating task");
-    assert_eq!(400, res.status());
-    let res_json = res.json::<ErrorResponse>().await.unwrap();
-    assert_eq!(
-        res_json.error,
-        "process_time_in_second should be less than equal to 20 minute (in second)"
     );
 }

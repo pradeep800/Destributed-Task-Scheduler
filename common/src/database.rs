@@ -1,6 +1,3 @@
-use std::env;
-
-use config::{Config, File, FileFormat};
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]

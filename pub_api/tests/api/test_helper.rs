@@ -1,5 +1,6 @@
-use std::{env, future::IntoFuture};
+use std::future::IntoFuture;
 
+use chrono::Utc;
 use common::database::Database;
 use once_cell::sync::Lazy;
 use pub_api::{
@@ -47,12 +48,64 @@ pub async fn migrate_and_get_db(database: &mut Database) -> PgPool {
 }
 pub async fn spawn() -> AppInfo {
     Lazy::force(&TRACING);
-    let mut database = get_configuration();
-    let db_pool = migrate_and_get_db(&mut database).await;
+    let mut config = get_configuration();
+    let db_pool = migrate_and_get_db(&mut config.database).await;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://localhost:{}", port);
-    let server = get_server(listener, db_pool.clone());
+    let server = get_server(listener, db_pool.clone(), config);
     let _ = tokio::spawn(server.into_future());
     return AppInfo { address, db_pool };
+}
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct Task {
+    pub id: i32,
+    pub schedule_at: chrono::DateTime<Utc>,
+    pub picked_at_by_producers: Vec<chrono::DateTime<Utc>>,
+    pub picked_at_by_workers: Vec<chrono::DateTime<Utc>>,
+    pub successful_at: Option<chrono::DateTime<Utc>>,
+    pub failed_ats: Vec<chrono::DateTime<Utc>>,
+    pub failed_reasons: Vec<String>,
+    pub total_retry: i16,
+    pub current_retry: i16,
+    pub file_uploaded: bool,
+    pub is_producible: bool,
+    pub tracing_id: String,
+}
+impl Task {
+    pub async fn create_task_in_db(&self, db_pool: &PgPool) -> Task {
+        let inserted_task = sqlx::query_as!(
+            Task,
+            r#"
+        INSERT INTO Tasks (
+            schedule_at, picked_at_by_producers, picked_at_by_workers,
+            successful_at, failed_ats, failed_reasons,
+            total_retry, current_retry,
+            file_uploaded, is_producible, tracing_id
+        )
+        VALUES (
+            $1, $2, $3,
+            $4, $5, $6,
+            $7, $8,
+            $9, $10, $11
+        )
+        RETURNING *
+        "#,
+            self.schedule_at,
+            &self.picked_at_by_producers,
+            &self.picked_at_by_workers,
+            self.successful_at,
+            &self.failed_ats,
+            &self.failed_reasons,
+            self.total_retry,
+            self.current_retry,
+            self.file_uploaded,
+            self.is_producible,
+            self.tracing_id,
+        )
+        .fetch_one(db_pool)
+        .await
+        .unwrap();
+        inserted_task
+    }
 }

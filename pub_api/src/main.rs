@@ -12,14 +12,13 @@ async fn main() {
         "info".to_string(),
         std::io::stdout,
     );
-    let database = get_configuration();
+    let config = get_configuration();
     init_subscriber(subscriber);
-
-    let db_pool = database.get_pool().await;
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
+    let db_pool = config.database.get_pool().await;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:4000")
         .await
         .unwrap();
-    let _ = get_server(listener, db_pool)
+    let _ = get_server(listener, db_pool, config)
         .await
         .context("can't spawan the server")
         .unwrap();
