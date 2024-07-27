@@ -6,7 +6,7 @@ The objective of this project is to create a task scheduler capable of executing
 ![Architecture Diagram](images/dark.png#gh-dark-mode-only)
 
 ## Architecture Explanation
-First, our request will go to a `Public API`. The API will add task detail entry to our `Task Database`. Then, our `Task Producer` will take these entries and add them to an `SQS Queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `Status Check Service` in every 5 seconds. The `Status Check Service` will update the health check time in a `Health Check Database`. When the worker finishes a task, it will send a request to the `Status Check Service`, which will then update the `successful_at` or `failed_at` with `failed_reason` in `Task Database`.
+First, our request will go to a `Public API`. The API will add task detail entry to our `Task Database`. Then, our `Task Producer` will take these entries and add them to an `SQS Queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `Status Check Service` in every 5 seconds. The `Status Check Service` will update the health check time in a `Health Check Database`. When the worker finishes a task, it will send a request to the `Status Check Service`, which will then update the `successful_at` or `failed_ats` with `failed_reasons` in `Task Database`.
 
 ## Component Explanation
 ### Tasks Database
@@ -36,7 +36,7 @@ These APIs will perform 4 functions:
 
 - **Create task (`task/create`):** For creating tasks.
 - **Check status (`task/status`):** For checking the status.
-- **Create sign URL (`signurl/create`):** Generates a sign URL for a specific task.
+- **Create sign URL (`signurl/create`):** Generates a presigned URL for a specific task.
 - **Check file posted (`file/status`):** Checks if the file has been posted yet.
  
 ### producer
@@ -97,11 +97,10 @@ Because our worker node's main container houses our health check and completion 
 we are going to use this database for collecting health information
 
 **schema**
-
+health_check_entries table
 | name                             | type     |
 | -------------------------------- | -------- |
-| id                               | int (PM) |
-| task_id                          | int      |
+| task_id                          | int (PM) |
 | last_time_health_check           | timestamptz |
 | task_completed                   | bool     |
 
@@ -122,12 +121,11 @@ Here are 2 things `Status Check Service` does
 - **POST /health_check:** it will update the value of last_time_health_check to current timestamp.
 
 ```sql
-INSERT INTO HealthCheckEntries (task_id, last_time_health_check, task_completed)
-VALUES ($1, NOW(), true)
+INSERT INTO health_check_entries(task_id, last_time_health_check)
+VALUES ($1, NOW())
 ON CONFLICT (task_id)
 DO UPDATE SET
   last_time_health_check = NOW(),
-  task_completed= true;
 ```
 
 - **POST /update_status:** it will update the status of worker 
@@ -136,7 +134,7 @@ If our worker send us we successfully completed the task
 
 ```sql
 -- with this query Retry and Failed updater service will not select this
-UPDATE your_table_name
+UPDATE health_check_entries
 SET task_completed= true
 WHERE task_id = :task_id;
 
@@ -145,14 +143,14 @@ SET successful_at= NOW()
 WHERE id = :task_id;
 ```
 
-If our worker said our task got failed
+If our worker task got failed
 we'll check if total_retry = current_retry
 
 ```sql
-UPDATE tasks
-    SET failed_at = NOW(),
-        failed_at = array_append(failed_at, now()),
-        failed_reason = array_append(failed_reason, :reason)
+    UPDATE tasks
+    SET
+    failed_at = array_append(failed_at, now()),
+    failed_reason = array_append(failed_reason, :reason)
     WHERE id = :task_id
     AND total_retry = current_retry
     FOR UPDATE
@@ -179,7 +177,7 @@ Sql query for checking task which didn't send health-check for 20-second
 
 ```sql
 SELECT *
-FROM health_check 
+FROM health_check_entres
 WHERE last_time_health_check < NOW() - INTERVAL '20 seconds'
 AND task_completed= true;
 ```
@@ -226,6 +224,6 @@ WHERE task_completed= true;
 ### Things to consider before using this service 
 
 1. Your given binary should be idempotent 
-2. It will execute our under 1 minute
+2. It will start executing code under 1 minute 
 3. Maximum task execution time is 20 minute
 4. Retry will happen under 1 minute
