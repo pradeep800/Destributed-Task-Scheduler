@@ -1,26 +1,19 @@
-use std::time::SystemTime;
-
-use configuration::get_configuration;
+use aws_sdk_sqs::Client;
+use configuration::{get_configuration, Config};
+use producer::producer;
+use std::{thread::sleep, time::Duration};
 pub mod configuration;
+pub mod producer;
 #[tokio::main]
 async fn main() {
     let config = get_configuration();
-    let pool = config.database.get_pool().await;
-    loop {
-        let mut transaction = pool.begin().await.unwrap();
-        let today_time_in_second = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as i32;
-        let today_after_30_second = today_time_in_second + 30;
-        let tasks = sqlx::query!(
-            "select * from tasks where schedule_at_in_second >= $1 and schedule_at_in_second <= $2",
-            today_time_in_second,
-            today_after_30_second
-        )
-        .fetch_all(&mut *transaction)
-        .await
-        .unwrap();
-        //now we can put these into our kafka (message broker of any kind)
+    producer(config).await;
+}
+
+pub async fn receive(client: &Client, queue_url: &String) {
+    let rcv_message_output = client.receive_message().send().await.unwrap();
+
+    for message in rcv_message_output.messages.unwrap_or_default() {
+        println!("Got the message: {:#?}", message);
     }
 }

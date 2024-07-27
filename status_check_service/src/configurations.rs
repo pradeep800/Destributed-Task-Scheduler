@@ -1,10 +1,11 @@
-use common::{database::Database, sqs::SQS};
-
+use common::database::Database;
 use config::{File, FileFormat};
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Config {
-    pub database: Database,
-    pub sqs: SQS,
+    pub tasks_db: Database,
+    pub health_db: Database,
+    #[serde(alias = "JWT_SECRET")]
+    pub jwt_secret: String,
 }
 
 pub fn get_configuration() -> Config {

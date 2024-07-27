@@ -1,24 +1,20 @@
-use axum::{
-    extract::Request,
-    routing::{get, post},
-    serve::Serve,
-    Router,
+use crate::{
+    configurations::Config,
+    routes::heart_beat::{self, heart_beat},
 };
+use axum::{extract::Request, routing::get, serve::Serve, Router};
 use sqlx::PgPool;
 use std::{sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{error, info_span, Span};
+pub struct AppState {
+    pub task_pool: PgPool,
+    pub health_check_pool: PgPool,
+    pub config: Config,
+}
 
-use crate::{
-    routes::{check_status, create_sign_url, create_task, upload_status},
-    state::AppState,
-};
-
-pub async fn get_server(
-    listener: TcpListener,
-    config: crate::configuration::Config,
-) -> Serve<Router, Router> {
+pub async fn get_server(listener: TcpListener, config: Config) -> Serve<Router, Router> {
     let tracing_layer = TraceLayer::new_for_http()
         .make_span_with(|request: &Request<_>| {
             let request_id = uuid::Uuid::new_v4();
@@ -35,16 +31,14 @@ pub async fn get_server(
             },
         );
     let share_state = Arc::new(AppState {
-        db_pool: config.database.get_pool().await,
-        config: Arc::new(config),
+        task_pool: config.tasks_db.get_pool().await,
+        health_check_pool: config.health_db.get_pool().await,
+        config,
     });
 
     let router = Router::new()
         .route("/health-check", get(health_check))
-        .route("/task/create", post(create_task))
-        .route("/task/status", post(check_status))
-        .route("/signurl/create", post(create_sign_url))
-        .route("/file/status", post(upload_status))
+        .route("/worker/heart-beat", get(heart_beat))
         .layer(tracing_layer)
         .with_state(share_state);
 

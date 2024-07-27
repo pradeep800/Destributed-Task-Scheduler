@@ -1,4 +1,3 @@
-use anyhow::Context;
 use pub_api::{
     configuration::get_configuration,
     startup::get_server,
@@ -14,12 +13,9 @@ async fn main() {
     );
     let config = get_configuration();
     init_subscriber(subscriber);
-    let db_pool = config.database.get_pool().await;
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:4000")
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();
-    let _ = get_server(listener, db_pool, config)
-        .await
-        .context("can't spawan the server")
-        .unwrap();
+    let server = get_server(listener, config.clone()).await;
+    server.await.unwrap();
 }

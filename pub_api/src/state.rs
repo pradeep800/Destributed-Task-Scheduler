@@ -1,4 +1,3 @@
-use aws_sdk_s3::Client;
 use sqlx::PgPool;
 use std::sync::Arc;
 

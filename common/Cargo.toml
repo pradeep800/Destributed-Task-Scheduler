@@ -11,3 +11,7 @@ sqlx = {workspace=true}
 config = {workspace=true}
 aws-config ={workspace=true} 
 aws-sdk-s3={workspace=true}
+aws-sdk-sqs.workspace = true
+jsonwebtoken = "9.3.0"
+chrono.workspace = true
+

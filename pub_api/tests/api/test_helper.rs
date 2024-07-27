@@ -32,14 +32,15 @@ pub async fn migrate_and_get_db(database: &mut Database) -> PgPool {
             .expect("Failed to connect to Postgres");
 
     database.database_db += &uuid::Uuid::new_v4().to_string();
+    println!("{:?}", database);
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, database.database_db).as_str())
         .await
         .expect("Failed to create database.");
 
-    // Migrate database
     let connection_pool = database.get_pool().await;
-    sqlx::migrate!("./migrations")
+
+    sqlx::migrate!("./../db/tasks/migrations")
         .run(&connection_pool)
         .await
         .expect("Failed to migrate the database");
@@ -53,7 +54,7 @@ pub async fn spawn() -> AppInfo {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://localhost:{}", port);
-    let server = get_server(listener, db_pool.clone(), config);
+    let server = get_server(listener, config).await;
     let _ = tokio::spawn(server.into_future());
     return AppInfo { address, db_pool };
 }
@@ -78,7 +79,7 @@ impl Task {
             Task,
             r#"
         INSERT INTO Tasks (
-            schedule_at, picked_at_by_producers, picked_at_by_workers,
+             id, schedule_at, picked_at_by_producers, picked_at_by_workers,
             successful_at, failed_ats, failed_reasons,
             total_retry, current_retry,
             file_uploaded, is_producible, tracing_id
@@ -87,10 +88,11 @@ impl Task {
             $1, $2, $3,
             $4, $5, $6,
             $7, $8,
-            $9, $10, $11
+            $9, $10, $11, $12
         )
         RETURNING *
         "#,
+            self.id,
             self.schedule_at,
             &self.picked_at_by_producers,
             &self.picked_at_by_workers,
