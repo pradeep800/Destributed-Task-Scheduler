@@ -5,7 +5,7 @@ async fn main() {
     let config = get_configuration();
     let pool = config.get_pool().await;
     loop {
-        sqlx::query!("DELETE FROM health_checks WHERE task_completed = true")
+        sqlx::query!("DELETE FROM health_checks_entries WHERE task_completed = true")
             .execute(&pool)
             .await
             .unwrap();

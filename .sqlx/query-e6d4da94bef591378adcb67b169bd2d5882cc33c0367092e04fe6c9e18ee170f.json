@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE Tasks\n                SET is_producible = false\n                WHERE id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e6d4da94bef591378adcb67b169bd2d5882cc33c0367092e04fe6c9e18ee170f"
+}

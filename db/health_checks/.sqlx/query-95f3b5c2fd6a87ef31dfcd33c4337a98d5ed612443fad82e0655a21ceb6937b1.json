@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM health_checks_entries WHERE task_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "last_time_health_check",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "task_completed",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "95f3b5c2fd6a87ef31dfcd33c4337a98d5ed612443fad82e0655a21ceb6937b1"
+}

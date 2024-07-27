@@ -23,7 +23,7 @@ impl<'a> HealthCheckDb<'a> {
     ) -> Result<HealthCheck, sqlx::Error> {
         let health_check_info = sqlx::query_as!(
             HealthCheck,
-            "SELECT * FROM health_checks WHERE task_id = $1",
+            "SELECT * FROM health_checks_entries WHERE task_id = $1",
             id
         )
         .fetch_one(self.pool)
@@ -35,7 +35,7 @@ impl<'a> HealthCheckDb<'a> {
         task_id: i32,
     ) -> Result<(), sqlx::Error> {
         query!(
-            "INSERT INTO health_checks (task_id, last_time_health_check)
+            "INSERT INTO health_checks_entries (task_id, last_time_health_check)
             VALUES ($1, NOW())
             ON CONFLICT (task_id)
             DO UPDATE SET
