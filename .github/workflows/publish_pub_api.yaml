@@ -10,7 +10,7 @@ jobs:
         uses: actions/checkout@v3
       - name: build
         run: |
-          docker build . -t pradeep800/pub_api:latest -f ./pub_api
+          docker build . -t pradeep800/pub_api:latest -f ./pub_api/Dockerfile
       - name: publish
         run: |
           docker login -u pradeep800 -p ${{ secrets.DOCKER_HUB_TOKEN }}
