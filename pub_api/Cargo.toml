@@ -26,3 +26,4 @@ common={path="../common"}
 aws-config ={workspace=true} 
 aws-sdk-s3={workspace=true}
 axum.workspace = true
+openssl = {workspace=true} 

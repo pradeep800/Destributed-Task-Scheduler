@@ -1,36 +1,10 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::HeaderMap, response::IntoResponse, routing::get, Json, Router};
+use axum::{extract::State, http::HeaderMap, response::IntoResponse};
 use common::jwt::Jwt;
 use health_checks::HealthCheckDb;
-use reqwest::StatusCode;
-use serde_json::json;
-use tracing::error;
 
-use crate::startup::AppState;
-#[derive(thiserror::Error, Debug)]
-#[error("Internal Server Error")]
-pub enum AppError {
-    Unauthorized,
-    InternalServerError(anyhow::Error),
-}
-impl IntoResponse for AppError {
-    fn into_response(self) -> axum::response::Response {
-        error!(error = ?self);
-        match self {
-            AppError::InternalServerError(_) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "Internal Server Error"})),
-            )
-                .into_response(),
-            AppError::Unauthorized => (
-                StatusCode::UNAUTHORIZED,
-                Json(json!({"error": "Please add authorization header"})),
-            )
-                .into_response(),
-        }
-    }
-}
+use crate::{error::AppError, startup::AppState};
 pub async fn heart_beat(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,

@@ -1,3 +1,4 @@
+use chrono::{Duration, Utc};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use status_check_service::{
@@ -6,6 +7,7 @@ use status_check_service::{
     tracing::{get_subscriber, init_subscriber},
 };
 use std::future::IntoFuture;
+use tasks::Task;
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
     let subscriber_name = "test".to_string();
@@ -69,4 +71,35 @@ pub async fn spawn() -> AppInfo {
     let server = get_server(listener, config.clone()).await;
     let _ = tokio::spawn(server.into_future());
     return AppInfo { address, config };
+}
+pub fn generate_random_processing_task() -> Task {
+    let mut failed_reasons = Vec::<String>::new();
+
+    let mut failed_ats = Vec::<chrono::DateTime<Utc>>::new();
+    let mut picked_at_by_producers = Vec::<chrono::DateTime<Utc>>::new();
+
+    let mut picked_at_by_workers = Vec::<chrono::DateTime<Utc>>::new();
+    for i in 0..3 {
+        failed_reasons.push(format!("Failed reason {}", i + 1));
+        failed_ats.push(Utc::now());
+        picked_at_by_producers.push(Utc::now());
+        picked_at_by_workers.push(Utc::now());
+    }
+    failed_ats.pop();
+    failed_reasons.pop();
+    let new_task = Task {
+        id: 1,
+        schedule_at: Utc::now() + Duration::minutes(1),
+        picked_at_by_workers,
+        picked_at_by_producers,
+        successful_at: None,
+        failed_ats,
+        failed_reasons,
+        total_retry: 3,
+        current_retry: 2,
+        file_uploaded: true,
+        is_producible: true,
+        tracing_id: uuid::Uuid::new_v4().to_string(),
+    };
+    new_task
 }

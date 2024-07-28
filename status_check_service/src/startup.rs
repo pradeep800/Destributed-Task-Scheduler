@@ -1,8 +1,21 @@
 use crate::{
     configurations::Config,
-    routes::heart_beat::{self, heart_beat},
+    middleware::{
+        self,
+        auth::{auth, MyLayer},
+    },
+    routes::{
+        heart_beat::{self, heart_beat},
+        update_status::update_status,
+    },
 };
-use axum::{extract::Request, routing::get, serve::Serve, Router};
+use axum::{
+    extract::Request,
+    middleware,
+    routing::{get, post},
+    serve::Serve,
+    Router,
+};
 use sqlx::PgPool;
 use std::{sync::Arc, time::Duration};
 use tokio::net::TcpListener;
@@ -37,8 +50,13 @@ pub async fn get_server(listener: TcpListener, config: Config) -> Serve<Router, 
     });
 
     let router = Router::new()
-        .route("/health-check", get(health_check))
         .route("/worker/heart-beat", get(heart_beat))
+        .route("/worker/update-status", post(update_status))
+        .route_layer(axum::middleware::from_fn_with_state(
+            share_state.clone(),
+            auth,
+        ))
+        .route("/health-check", get(health_check))
         .layer(tracing_layer)
         .with_state(share_state);
 

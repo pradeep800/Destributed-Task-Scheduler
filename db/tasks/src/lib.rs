@@ -1,6 +1,6 @@
 use chrono::{Duration, Utc};
 use sqlx::PgPool;
-pub struct TaskDb {
+pub struct TasksDb {
     pub pool: PgPool,
 }
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -18,9 +18,14 @@ pub struct Task {
     pub is_producible: bool,
     pub tracing_id: String,
 }
-impl TaskDb {
-    pub fn new(pool: PgPool) -> TaskDb {
-        TaskDb { pool }
+impl TasksDb {
+    pub fn new(pool: PgPool) -> TasksDb {
+        TasksDb { pool }
+    }
+    pub async fn find_task_by_id(&self, task_id: i32) -> Result<Task, sqlx::Error> {
+        sqlx::query_as!(Task, "select * from tasks where id = $1", task_id)
+            .fetch_one(&self.pool)
+            .await
     }
     pub async fn create_task(&self, task: &Task) -> Result<(), sqlx::Error> {
         sqlx::query_as!(
@@ -52,7 +57,7 @@ impl TaskDb {
             task.is_producible,
             task.tracing_id,
         )
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await?;
         Ok(())
     }

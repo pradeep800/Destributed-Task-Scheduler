@@ -6,14 +6,14 @@ use health_checks::HealthCheckDb;
 * task_id
 * tracing_id
 */
-use tasks::TaskDb;
+use tasks::TasksDb;
 
-use crate::test_helpers::spawn;
+use crate::test_helpers::{generate_random_processing_task, spawn};
 #[tokio::test]
 async fn check_heart_beat() {
     let app = spawn().await;
-    let task_db = TaskDb::new(app.config.tasks_db.get_pool().await);
-    let new_task = TaskDb::generate_random_processing_task();
+    let task_db = TasksDb::new(app.config.tasks_db.get_pool().await);
+    let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
     let jwt = Jwt::new(app.config.jwt_secret);
     let jwt_token = jwt.encode(&new_task.tracing_id, new_task.id).unwrap();
@@ -42,8 +42,8 @@ async fn check_heart_beat() {
 #[tokio::test]
 async fn unauthorized_heart_beat() {
     let app = spawn().await;
-    let task_db = TaskDb::new(app.config.tasks_db.get_pool().await);
-    let new_task = TaskDb::generate_random_processing_task();
+    let task_db = TasksDb::new(app.config.tasks_db.get_pool().await);
+    let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
 
     let client = reqwest::Client::new();
