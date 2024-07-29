@@ -1,7 +1,7 @@
 use chrono::{Duration, Utc};
-use sqlx::PgPool;
-pub struct TasksDb {
-    pub pool: PgPool,
+use sqlx::{query, PgPool, Postgres, Transaction};
+pub struct TasksDb<'a> {
+    pub pool: &'a PgPool,
 }
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Task {
@@ -18,13 +18,13 @@ pub struct Task {
     pub is_producible: bool,
     pub tracing_id: String,
 }
-impl TasksDb {
-    pub fn new(pool: PgPool) -> TasksDb {
+impl<'a> TasksDb<'a> {
+    pub fn new(pool: &PgPool) -> TasksDb {
         TasksDb { pool }
     }
     pub async fn find_task_by_id(&self, task_id: i32) -> Result<Task, sqlx::Error> {
         sqlx::query_as!(Task, "select * from tasks where id = $1", task_id)
-            .fetch_one(&self.pool)
+            .fetch_one(self.pool)
             .await
     }
     pub async fn create_task(&self, task: &Task) -> Result<(), sqlx::Error> {
@@ -57,39 +57,64 @@ impl TasksDb {
             task.is_producible,
             task.tracing_id,
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.pool)
         .await?;
         Ok(())
     }
-    pub fn generate_random_processing_task() -> Task {
-        let mut failed_reasons = Vec::<String>::new();
 
-        let mut failed_ats = Vec::<chrono::DateTime<Utc>>::new();
-        let mut picked_at_by_producers = Vec::<chrono::DateTime<Utc>>::new();
-
-        let mut picked_at_by_workers = Vec::<chrono::DateTime<Utc>>::new();
-        for i in 0..3 {
-            failed_reasons.push(format!("Failed reason {}", i + 1));
-            failed_ats.push(Utc::now());
-            picked_at_by_producers.push(Utc::now());
-            picked_at_by_workers.push(Utc::now());
-        }
-        failed_ats.pop();
-        failed_reasons.pop();
-        let new_task = Task {
-            id: 1,
-            schedule_at: Utc::now() + Duration::minutes(1),
-            picked_at_by_workers,
-            picked_at_by_producers,
-            successful_at: None,
-            failed_ats,
-            failed_reasons,
-            total_retry: 3,
-            current_retry: 2,
-            file_uploaded: true,
-            is_producible: true,
-            tracing_id: uuid::Uuid::new_v4().to_string(),
-        };
-        new_task
+    pub async fn update_successful_task_with_id(&self, id: i32) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "UPDATE tasks
+        SET successful_at = NOW()
+        WHERE id = $1",
+            id
+        )
+        .execute(self.pool)
+        .await?;
+        Ok(())
+    }
+    pub async fn get_lock_with_id(
+        task_trans: &mut Transaction<'_, Postgres>,
+        id: i32,
+    ) -> Result<Task, sqlx::Error> {
+        let current_task = sqlx::query_as!(Task, "SELECT * from tasks WHERE id= $1 FOR UPDATE", id)
+            .fetch_one(&mut **task_trans)
+            .await?;
+        Ok(current_task)
+    }
+    pub async fn increase_current_retry_add_failed_and_is_producible_true(
+        task_trans: &mut Transaction<'_, Postgres>,
+        id: i32,
+        failed_reason: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "UPDATE tasks SET failed_ats=array_append(failed_ats,now()),
+                                  failed_reasons=array_append(failed_reasons,$1),
+                                  current_retry=current_retry+1,
+                                  is_producible=true
+                         WHERE id=$2",
+            failed_reason,
+            id
+        )
+        .execute(&mut **task_trans)
+        .await?;
+        Ok(())
+    }
+    pub async fn add_failed_with_trans(
+        task_trans: &mut Transaction<'_, Postgres>,
+        id: i32,
+        failed_reason: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "UPDATE tasks SET failed_ats=array_append(failed_ats,now()),
+                              is_producible=false,
+                              failed_reasons=array_append(failed_reasons,$1)
+                         WHERE id=$2",
+            failed_reason,
+            id
+        )
+        .execute(&mut **task_trans)
+        .await?;
+        Ok(())
     }
 }

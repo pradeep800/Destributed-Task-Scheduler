@@ -1,17 +1,10 @@
 use crate::{
     configurations::Config,
-    middleware::{
-        self,
-        auth::{auth, MyLayer},
-    },
-    routes::{
-        heart_beat::{self, heart_beat},
-        update_status::update_status,
-    },
+    middleware::auth::auth,
+    routes::{heart_beat::heart_beat, update_status::update_status},
 };
 use axum::{
     extract::Request,
-    middleware,
     routing::{get, post},
     serve::Serve,
     Router,

@@ -133,7 +133,8 @@ DO UPDATE SET
 If our worker send us we successfully completed the task
 
 ```sql
--- with this query Retry and Failed updater service will not select this
+SELECT * from tasks WHERE id= $1 FOR UPDATE
+
 UPDATE health_check_entries
 SET task_completed= true
 WHERE task_id = :task_id;
@@ -147,13 +148,19 @@ If our worker task got failed
 we'll check if total_retry = current_retry
 
 ```sql
+    SELECT * from tasks WHERE id= $1 FOR UPDATE
+            
+    UPDATE health_check_entries
+    SET task_completed= true
+    WHERE task_id = :task_id;
+
+
     UPDATE tasks
     SET
     failed_at = array_append(failed_at, now()),
     failed_reason = array_append(failed_reason, :reason)
     WHERE id = :task_id
     AND total_retry = current_retry
-    FOR UPDATE
 ```
 
 

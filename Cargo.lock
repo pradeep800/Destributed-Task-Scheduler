@@ -2995,7 +2995,6 @@ dependencies = [
  "tasks",
  "thiserror",
  "tokio",
- "tower",
  "tower-http",
  "tracing",
  "tracing-bunyan-formatter",

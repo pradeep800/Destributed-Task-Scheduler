@@ -26,5 +26,4 @@ health_checks={path="../db/health_checks"}
 axum.workspace = true
 
 openssl = {workspace=true} 
-tower = "0.4.13"
 async-trait = "0.1.81"

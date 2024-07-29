@@ -12,7 +12,8 @@ use crate::test_helpers::{generate_random_processing_task, spawn};
 #[tokio::test]
 async fn check_heart_beat() {
     let app = spawn().await;
-    let task_db = TasksDb::new(app.config.tasks_db.get_pool().await);
+    let pool = app.config.tasks_db.get_pool().await;
+    let task_db = TasksDb::new(&pool);
     let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
     let jwt = Jwt::new(app.config.jwt_secret);
@@ -42,7 +43,8 @@ async fn check_heart_beat() {
 #[tokio::test]
 async fn unauthorized_heart_beat() {
     let app = spawn().await;
-    let task_db = TasksDb::new(app.config.tasks_db.get_pool().await);
+    let pool = app.config.tasks_db.get_pool().await;
+    let task_db = TasksDb::new(&pool);
     let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
 
