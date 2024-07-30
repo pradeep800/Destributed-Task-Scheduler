@@ -1,0 +1,17 @@
+app: pub-api
+deployment:
+  replicas: 2
+  metadata:
+    name: pub_api_deployment
+service:
+  port: 80
+  targetPort: 3000
+  type: LoadBalancer
+containers:
+    image: pradeep800/pub_api:latest
+    containerPort: 3000
+
+
+
+
+

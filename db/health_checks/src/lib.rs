@@ -17,10 +17,7 @@ impl<'a> HealthCheckDb<'a> {
         HealthCheckDb { pool }
     }
 
-    pub async fn select_with_task_id_in_health_db(
-        &self,
-        id: i32,
-    ) -> Result<HealthCheck, sqlx::Error> {
+    pub async fn find_with_task_id(&self, id: i32) -> Result<HealthCheck, sqlx::Error> {
         let health_check_info = sqlx::query_as!(
             HealthCheck,
             "SELECT * FROM health_check_entries WHERE task_id = $1",

@@ -1,7 +1,7 @@
 use crate::{error::AppError, startup::AppState};
 use axum::{
     extract::{Request, State},
-    middleware::{self, Next},
+    middleware::Next,
     response::Response,
 };
 use common::jwt::Jwt;

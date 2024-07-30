@@ -32,7 +32,7 @@ impl<'a> TasksDb<'a> {
             Task,
             r#"
         INSERT INTO Tasks (
-             id, schedule_at, picked_at_by_producers, picked_at_by_workers,
+              schedule_at, picked_at_by_producers, picked_at_by_workers,
             successful_at, failed_ats, failed_reasons,
             total_retry, current_retry,
             file_uploaded, is_producible, tracing_id
@@ -41,10 +41,9 @@ impl<'a> TasksDb<'a> {
             $1, $2, $3,
             $4, $5, $6,
             $7, $8,
-            $9, $10, $11, $12
+            $9, $10, $11 
         )
         "#,
-            task.id,
             task.schedule_at,
             &task.picked_at_by_producers,
             &task.picked_at_by_workers,
@@ -57,8 +56,9 @@ impl<'a> TasksDb<'a> {
             task.is_producible,
             task.tracing_id,
         )
-        .fetch_one(self.pool)
+        .execute(self.pool)
         .await?;
+
         Ok(())
     }
 

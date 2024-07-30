@@ -3869,6 +3869,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "worker"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+]
+
+[[package]]
 name = "xmlparser"
 version = "0.13.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
