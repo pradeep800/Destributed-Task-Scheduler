@@ -2,7 +2,7 @@
 resolver="2"
 members = [ 
     "common", "db/health_checks", "db/tasks",
-    "pub_api", "remove_health_check_entry", "status_check_service", 
+    "pub_api", "remove_health_check_entry", "retry_and_failed_updator_service", "status_check_service", 
     "task_producer", "worker",
 ]
 [workspace.dependencies]

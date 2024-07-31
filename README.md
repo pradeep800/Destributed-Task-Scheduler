@@ -30,7 +30,6 @@ This database for storing information about tasks
 
 #### Index
 **schedule_at** : because our `Producer` will use `schedule_at` in where clause
-
 ### Public API
 These APIs will perform 4 functions:
 
@@ -100,15 +99,15 @@ we are going to use this database for collecting health information
 health_check_entries table
 | name                             | type     |
 | -------------------------------- | -------- |
-| task_id                          | int (PM) |
+| task_id                          | int (PM)    |
 | last_time_health_check           | timestamptz |
-| task_completed                   | bool     |
+| worker_finished                  | bool (false)|
+| pod_name                         | varchar(255)|
 
 
 **Index**
-(last_time_health_check,task_completed) => 
-- in the `Remove Health Check Database Entry` operation, we remove entries from the database for tasks that workers have already completed.
-- In `Retry and Failed Updater` we are going to use both or key in where clause so I am making in index
+1. (task_id,pod_name) => 
+Because in health checker service we are using both of them into where clause
 
 ### Status Checker Service
 Every worker will send status check in every 5 seconds and when worker will finish it job it will send it status to our `Status Checker Service`
@@ -125,19 +124,25 @@ INSERT INTO health_check_entries(task_id, last_time_health_check)
 VALUES ($1, NOW())
 ON CONFLICT (task_id)
 DO UPDATE SET
-  last_time_health_check = NOW(),
+last_time_health_check = NOW()
+WHERE worker_finished=false 
 ```
 
 - **POST /update_status:** it will update the status of worker 
 
 If our worker send us we successfully completed the task
 
-```sql
-SELECT * from tasks WHERE id= $1 FOR UPDATE
 
+```sql
+    SELECT * from tasks WHERE id= $1 FOR UPDATE
+```
+
+
+```sql
 UPDATE health_check_entries
-SET task_completed= true
-WHERE task_id = :task_id;
+SET worker_finished= true
+WHERE task_id = :task_id
+AND pod_name= :pod_name
 
 UPDATE tasks
 SET successful_at= NOW()
@@ -148,15 +153,13 @@ If our worker task got failed
 we'll check if total_retry = current_retry
 
 ```sql
-    SELECT * from tasks WHERE id= $1 FOR UPDATE
-            
+
     UPDATE health_check_entries
-    SET task_completed= true
-    WHERE task_id = :task_id;
+    SET worker_finished= true
+    WHERE task_id = :task_id
+    AND pod_name= :pod_name;
 
-
-    UPDATE tasks
-    SET
+    UPDATE tasks SET
     failed_at = array_append(failed_at, now()),
     failed_reason = array_append(failed_reason, :reason)
     WHERE id = :task_id
@@ -167,6 +170,11 @@ we'll check if total_retry = current_retry
 If our total_retry > current_retry
 
 ```sql
+    UPDATE health_check_entries
+    SET worker_finished= true
+    WHERE task_id = :task_id
+    AND pod_name= :pod_name;
+
 UPDATE tasks
 SET is_producible = true,
     current_retry = current_retry + 1,
@@ -186,16 +194,19 @@ Sql query for checking task which didn't send health-check for 20-second
 SELECT *
 FROM health_check_entres
 WHERE last_time_health_check < NOW() - INTERVAL '20 seconds'
-AND task_completed= true;
+AND worker_finished= true;
+```
+do this to get lock
+```sql
+    SELECT * from tasks WHERE id= $1 FOR UPDATE
 ```
 
-If the task has retries remaining
-- we'll check if total_retry = current_retry
+-  if total_retry = current_retry
 
 ```sql
 -- with this query Retry and Failed updater service will not select this
-UPDATE your_table_name
-SET task_completed= true
+UPDATE health_check_entries  
+SET worker_finished= true
 WHERE task_id = :task_id;
 
 UPDATE tasks
@@ -204,7 +215,6 @@ UPDATE tasks
         failed_reason = array_append(failed_reason, :reason)
     WHERE id = :task_id
     AND total_retry = current_retry
-
 ```
 - if our total_retry > current_retry
 
@@ -226,7 +236,7 @@ This cron job executes in every 10 minutes to remove obsolete entries from the `
 
 ```sql
 DELETE FROM health_check 
-WHERE task_completed= true;
+WHERE worker_finished= true;
 ```
 ### Things to consider before using this service 
 
