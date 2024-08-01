@@ -19,7 +19,9 @@ async fn check_heart_beat() {
     task_db.create_task(&new_task).await.unwrap();
 
     let jwt = Jwt::new(app.config.jwt_secret);
-    let jwt_token = jwt.encode(&new_task.tracing_id, new_task.id).unwrap();
+    let jwt_token = jwt
+        .encode(&new_task.tracing_id, new_task.id, "pod_123")
+        .unwrap();
 
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -38,7 +40,7 @@ async fn check_heart_beat() {
     let pool = app.config.health_db.get_pool().await;
     let health_check_db = HealthCheckDb::new(&pool);
 
-    let _ = health_check_db.find_with_task_id(1).await.unwrap();
+    let _ = health_check_db.find_entry(1, "pod_123").await.unwrap();
 }
 #[tokio::test]
 async fn unauthorized_heart_beat() {

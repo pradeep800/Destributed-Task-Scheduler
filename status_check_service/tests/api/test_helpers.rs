@@ -1,6 +1,6 @@
 use chrono::{Duration, Utc};
 use once_cell::sync::Lazy;
-use sqlx::{Connection, Executor, PgConnection, PgPool};
+use sqlx::{Connection, Executor, PgConnection};
 use status_check_service::{
     configurations::{get_configuration, Config},
     startup::get_server,

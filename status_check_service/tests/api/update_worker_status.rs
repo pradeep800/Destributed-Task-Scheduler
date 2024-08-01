@@ -16,11 +16,13 @@ pub async fn worker_sending_success_status() {
     let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
     let _ = health_db
-        .create_update_last_time_health_check(new_task.id)
+        .cu_health_check_entries(new_task.id, "pod_123")
         .await;
     let body = serde_json::json!({"status":"SUCCESS"});
     let jwt = Jwt::new(app.config.jwt_secret);
-    let jwt_token = jwt.encode(&new_task.tracing_id, new_task.id).unwrap();
+    let jwt_token = jwt
+        .encode(&new_task.tracing_id, new_task.id, "pod_123")
+        .unwrap();
 
     let mut headers = HeaderMap::new();
 
@@ -41,9 +43,9 @@ pub async fn worker_sending_success_status() {
     let task = task_db.find_task_by_id(1).await.unwrap();
     assert!(task.successful_at.is_some());
 
-    let health_entry = health_db.find_with_task_id(1).await.unwrap();
+    let health_entry = health_db.find_entry(1, "pod_123").await.unwrap();
 
-    assert_eq!(health_entry.task_completed, true);
+    assert_eq!(health_entry.worker_finished, true);
 }
 #[tokio::test]
 pub async fn worker_sending_failed_status() {
@@ -53,7 +55,9 @@ pub async fn worker_sending_failed_status() {
     let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
     let jwt = Jwt::new(app.config.jwt_secret);
-    let jwt_token = jwt.encode(&new_task.tracing_id, new_task.id).unwrap();
+    let jwt_token = jwt
+        .encode(&new_task.tracing_id, new_task.id, "pod_123")
+        .unwrap();
 
     let mut headers = HeaderMap::new();
 
@@ -85,7 +89,9 @@ pub async fn worker_sending_random_status() {
     let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
     let jwt = Jwt::new(app.config.jwt_secret);
-    let jwt_token = jwt.encode(&new_task.tracing_id, new_task.id).unwrap();
+    let jwt_token = jwt
+        .encode(&new_task.tracing_id, new_task.id, "pod_123")
+        .unwrap();
 
     let mut headers = HeaderMap::new();
 

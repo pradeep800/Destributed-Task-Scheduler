@@ -29,7 +29,7 @@ pub async fn update_status(
             .await
             .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
         health_check_db
-            .task_completed(claims.task_id)
+            .worker_finished(claims.task_id, &claims.pod_name)
             .await
             .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
     }
@@ -72,7 +72,7 @@ pub async fn update_status(
             .await
             .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
             health_check_db
-                .task_completed(claims.task_id)
+                .worker_finished(claims.task_id, &claims.pod_name)
                 .await
                 .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
         }

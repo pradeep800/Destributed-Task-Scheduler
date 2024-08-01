@@ -2302,6 +2302,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "retry_and_failed_updator_service"
+version = "0.1.0"
+
+[[package]]
 name = "rfc6979"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3082,10 +3086,14 @@ dependencies = [
  "chrono",
  "common",
  "config",
+ "once_cell",
  "openssl",
  "serde",
  "sqlx",
+ "tasks",
  "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

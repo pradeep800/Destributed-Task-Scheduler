@@ -9,6 +9,7 @@ use sqlx::types::chrono;
 pub struct Claims {
     pub tracing_id: String,
     pub task_id: i32,
+    pub pod_name: String,
     pub exp: usize,
 }
 
@@ -21,11 +22,17 @@ impl Jwt {
         Jwt { secret }
     }
 
-    pub fn encode(&self, tracing_id: &str, id: i32) -> Result<String, jsonwebtoken::errors::Error> {
+    pub fn encode(
+        &self,
+        tracing_id: &str,
+        id: i32,
+        pod_name: &str,
+    ) -> Result<String, jsonwebtoken::errors::Error> {
         let expiary = chrono::Utc::now() + Duration::minutes(30);
         let claims = Claims {
             tracing_id: tracing_id.to_string(),
             task_id: id,
+            pod_name: pod_name.to_string(),
             exp: expiary.timestamp() as usize,
         };
         let encoding_key = EncodingKey::from_secret(self.secret.as_ref());
@@ -46,7 +53,7 @@ mod test {
     #[test]
     fn check_jwt() {
         let jwt = Jwt::new("super-secret-token".to_string());
-        let token = jwt.encode("1234", 1).unwrap();
+        let token = jwt.encode("1234", 1, "pod_123").unwrap();
         let cliams = jwt.verify(&token).unwrap();
         assert_eq!(cliams.task_id, 1);
         assert_eq!(cliams.tracing_id, "1234");

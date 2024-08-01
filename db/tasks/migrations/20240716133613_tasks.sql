@@ -13,3 +13,5 @@ CREATE TABLE Tasks(
     is_producible BOOLEAN NOT NULL DEFAULT TRUE
 );
 
+
+CREATE INDEX idx_schedule_at ON Tasks(schedule_at);

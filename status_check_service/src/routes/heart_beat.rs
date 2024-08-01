@@ -15,7 +15,7 @@ pub async fn heart_beat(
     let health_checks_db = HealthCheckDb::new(&state.health_check_pool);
 
     health_checks_db
-        .create_update_last_time_health_check(claims.task_id)
+        .cu_health_check_entries(claims.task_id, &claims.pod_name)
         .await
         .map_err(|e| {
             println!("{:?}", e);

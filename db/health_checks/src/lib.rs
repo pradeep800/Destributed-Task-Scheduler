@@ -9,7 +9,8 @@ pub struct HealthCheckDb<'a> {
 pub struct HealthCheck {
     pub task_id: i32,
     pub last_time_health_check: DateTime<Utc>,
-    pub task_completed: bool,
+    pub worker_finished: bool,
+    pub pod_name: String,
 }
 
 impl<'a> HealthCheckDb<'a> {
@@ -17,36 +18,40 @@ impl<'a> HealthCheckDb<'a> {
         HealthCheckDb { pool }
     }
 
-    pub async fn find_with_task_id(&self, id: i32) -> Result<HealthCheck, sqlx::Error> {
+    pub async fn find_entry(&self, id: i32, pod_name: &str) -> Result<HealthCheck, sqlx::Error> {
         let health_check_info = sqlx::query_as!(
             HealthCheck,
-            "SELECT * FROM health_check_entries WHERE task_id = $1",
-            id
+            "SELECT * FROM health_check_entries WHERE task_id = $1 AND pod_name= $2",
+            id,
+            pod_name
         )
         .fetch_one(self.pool)
         .await?;
         Ok(health_check_info)
     }
-    pub async fn create_update_last_time_health_check(
+    pub async fn cu_health_check_entries(
         &self,
         task_id: i32,
+        pod_name: &str,
     ) -> Result<(), sqlx::Error> {
         query!(
-            "INSERT INTO health_check_entries (task_id, last_time_health_check)
-            VALUES ($1, NOW())
-            ON CONFLICT (task_id)
+            "INSERT INTO health_check_entries (task_id, last_time_health_check,pod_name)
+            VALUES ($1, NOW(),$2)
+            ON CONFLICT (task_id,pod_name)
             DO UPDATE SET
             last_time_health_check = NOW()",
-            task_id
+            task_id,
+            pod_name
         )
         .execute(self.pool)
         .await?;
         Ok(())
     }
-    pub async fn task_completed(&self, task_id: i32) -> Result<(), sqlx::Error> {
+    pub async fn worker_finished(&self, task_id: i32, pod_name: &str) -> Result<(), sqlx::Error> {
         query!(
-            "UPDATE health_check_entries SET task_completed=true WHERE task_id=$1",
-            task_id
+            "UPDATE health_check_entries SET worker_finished=true WHERE task_id=$1 and pod_name=$2",
+            task_id,
+            pod_name
         )
         .execute(self.pool)
         .await?;
