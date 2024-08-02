@@ -21,7 +21,7 @@ impl TaskFaker {
         failed_reasons.pop();
         let new_task = Task {
             id: 1,
-            schedule_at: Utc::now() + Duration::minutes(1),
+            schedule_at: Utc::now() - Duration::seconds(1),
             picked_at_by_workers,
             picked_at_by_producers,
             successful_at: None,

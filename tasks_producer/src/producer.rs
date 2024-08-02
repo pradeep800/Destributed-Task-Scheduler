@@ -1,13 +1,14 @@
 use crate::configuration::Config;
 use aws_sdk_sqs::Client;
+use serde_json::json;
 use tokio::time::{sleep, Duration};
 use tracing::{error, info, trace_span};
 
 pub async fn producer(config: &Config) {
     let pool = config.database.get_pool().await;
     let mut sqs_retry = 0;
-    let span = trace_span!("tracing_span");
-    span.enter();
+    let span = trace_span!("trace_span");
+    let _ = span.enter();
 
     'outer: loop {
         match process_batch(config, &pool).await {
@@ -32,6 +33,11 @@ enum ProcessError {
     SqsError,
     DbError,
 }
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SqsBody {
+    pub task_id: i32,
+    pub tracing_id: String,
+}
 
 async fn process_batch(config: &Config, pool: &sqlx::PgPool) -> Result<(), ProcessError> {
     let mut transaction = pool.begin().await.map_err(|_| ProcessError::DbError)?;
@@ -39,22 +45,30 @@ async fn process_batch(config: &Config, pool: &sqlx::PgPool) -> Result<(), Proce
     let tasks = sqlx::query!(
         "SELECT id, tracing_id
          FROM Tasks
-         WHERE schedule_at <= now() + INTERVAL '30 seconds'
+         WHERE schedule_at < now() + INTERVAL '30 seconds'
          AND is_producible = true
          AND file_uploaded = true
-         ORDER BY schedule_at
+         ORDER BY id
          LIMIT 20
          FOR UPDATE SKIP LOCKED"
     )
     .fetch_all(&mut *transaction)
     .await
     .map_err(|_| ProcessError::DbError)?;
-
     let client = config.sqs.create_client().await;
-
     for task in &tasks {
         info!("Producer produce tasks with tracing id {}", task.tracing_id);
-        if let Err(err) = send_sqs(&client, task.id.to_string(), &config.sqs.queue_url).await {
+        if let Err(err) = send_sqs(
+            &client,
+            json!(SqsBody {
+                tracing_id: task.tracing_id.clone(),
+                task_id: task.id
+            })
+            .to_string(),
+            &config.sqs.queue_url,
+        )
+        .await
+        {
             error!("{:?}", err);
             transaction
                 .rollback()

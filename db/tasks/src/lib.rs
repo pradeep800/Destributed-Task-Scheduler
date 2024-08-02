@@ -28,12 +28,12 @@ impl<'a> TasksDb<'a> {
             .fetch_one(self.pool)
             .await
     }
-    pub async fn create_task(&self, task: &Task) -> Result<(), sqlx::Error> {
-        sqlx::query_as!(
+    pub async fn create_task(&self, task: &Task) -> Result<Task, sqlx::Error> {
+        let task = sqlx::query_as!(
             Task,
             r#"
         INSERT INTO Tasks (
-              schedule_at, picked_at_by_producers, picked_at_by_workers,
+            schedule_at, picked_at_by_producers, picked_at_by_workers,
             successful_at, failed_ats, failed_reasons,
             total_retry, current_retry,
             file_uploaded, is_producible, tracing_id
@@ -44,6 +44,7 @@ impl<'a> TasksDb<'a> {
             $7, $8,
             $9, $10, $11 
         )
+        RETURNING *;
         "#,
             task.schedule_at,
             &task.picked_at_by_producers,
@@ -57,21 +58,18 @@ impl<'a> TasksDb<'a> {
             task.is_producible,
             task.tracing_id,
         )
-        .execute(self.pool)
+        .fetch_one(self.pool)
         .await?;
-
-        Ok(())
+        Ok(task)
     }
 
-    pub async fn update_successful_task_with_id(&self, id: i32) -> Result<(), sqlx::Error> {
-        sqlx::query!(
-            "UPDATE tasks
-        SET successful_at = NOW()
-        WHERE id = $1",
-            id
-        )
-        .execute(self.pool)
-        .await?;
+    pub async fn update_successful_task_with_id(
+        task_trans: &mut Transaction<'_, Postgres>,
+        id: i32,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query!("UPDATE Tasks SET successful_at = NOW() WHERE id = $1", id)
+            .execute(&mut **task_trans)
+            .await?;
         Ok(())
     }
     pub async fn get_lock_with_id(
@@ -90,10 +88,10 @@ impl<'a> TasksDb<'a> {
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE tasks SET failed_ats=array_append(failed_ats,now()),
-                                  failed_reasons=array_append(failed_reasons,$1),
-                                  current_retry=current_retry+1,
-                                  is_producible=true
-                         WHERE id=$2",
+             failed_reasons=array_append(failed_reasons,$1),
+             current_retry=current_retry+1,
+             is_producible=true
+             WHERE id=$2",
             failed_reason,
             id
         )
@@ -108,14 +106,20 @@ impl<'a> TasksDb<'a> {
     ) -> Result<(), sqlx::Error> {
         sqlx::query!(
             "UPDATE tasks SET failed_ats=array_append(failed_ats,now()),
-                              is_producible=false,
-                              failed_reasons=array_append(failed_reasons,$1)
-                         WHERE id=$2",
+             is_producible=false,
+             failed_reasons=array_append(failed_reasons,$1)
+             WHERE id=$2",
             failed_reason,
             id
         )
         .execute(&mut **task_trans)
         .await?;
         Ok(())
+    }
+    pub async fn select_all(&self) -> Result<Vec<Task>, sqlx::Error> {
+        let tasks = sqlx::query_as!(Task, "SELECT * FROM tasks")
+            .fetch_all(self.pool)
+            .await?;
+        Ok(tasks)
     }
 }

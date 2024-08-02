@@ -56,7 +56,7 @@ Limit 20
 FOR UPDATE SKIP LOCKED;
 ```
 
-- `is_producible` is for whatever you have to make something producible you will make it true this can be used in other services we can just change this attribute to `false` to `true` and our producer will start producing it again
+- `is_producible` is for whenever you have to make something producible you will make it true this can be used in other services we can just change this attribute to `false` to `true` and our producer will start producing it again
 
 
 ### SQS (Simple Queue Service)
@@ -71,26 +71,31 @@ Worker service consists of three main components:
 1. **Share Volume:**
    Share volume is the storage shared between the init container and the main container. It stores:
    - The executable file.
-   - `jwt.txt`.
+   - `share_info.txt`.
+
+`share_info.txt` contains
+- jwt with claims including tracing_id, task_id
+- tracing_id in second line 
 
 2. **Init Container:**
    here is what init container is doing
    - Polling for a single task entry from SQS.
    - Retrieving the executable file from S3.
    - Storing the retrieved S3 file into the share volume.
-   - Creating a JWT and saving it in a file named `jwt.txt`.
+   - Creating a JWT and saving it in a file named `share_info.txt`.
+   - saving trace_id in `share_info.txt` in second line
    - add new entry at `picked_at_by_worker` to the current time.
 
 3. **Main Container:**
    The main container performs the following tasks:
-   - Executes a file providing health checks and completion updates to the `Status Check Service`. It also parses the `jwt.txt` file from the share volume.
+   - Executes a file providing health checks and completion updates to the `Status Check Service`. It also parses the `share_info.txt` file from the share volume.
    - Runs the executable file from the share volume by code.
    - Sends task success or failure notifications to the `Status Check Service`.
 
 
 **Why JWT?**
 
-Because our worker node's main container houses our health check and completion logic. It's crucial for us to ensure secure communication since we don't fully trust the worker node. Therefore, we provide tokens to the worker node, restricting its requests solely to itself.
+Because our worker node's main container runs our health check and completion logic. It's crucial for us to ensure secure communication since we don't fully trust the worker node. Therefore, we provide tokens to the worker node, restricting in a way that it can only affect only his state.
 
 ### Health check database
 we are going to use this database for collecting health information
@@ -110,7 +115,7 @@ health_check_entries table
 Because in health checker service we are using both of them into where clause
 
 ### Status Checker Service
-Every worker will send status check in every 5 seconds and when worker will finish it job it will send it status to our `Status Checker Service`
+Every worker will send heart beat in every 5 seconds and when worker will finish it job it will send it status to our `Status Checker Service`
 Here are 2 things `Status Check Service` does
 - Provide API for updating `last_time_health_check` in `Health Check Database`
 - Provide API for updating the status of worker in `Task Db`
@@ -120,9 +125,9 @@ Here are 2 things `Status Check Service` does
 - **POST /health_check:** it will update the value of last_time_health_check to current timestamp.
 
 ```sql
-INSERT INTO health_check_entries(task_id, last_time_health_check)
-VALUES ($1, NOW())
-ON CONFLICT (task_id)
+INSERT INTO health_check_entries(task_id, last_time_health_check,pod_name)
+VALUES ($1, NOW(),$2)
+ON CONFLICT (task_id,pod_name)
 DO UPDATE SET
 last_time_health_check = NOW()
 WHERE worker_finished=false 
@@ -134,16 +139,18 @@ If our worker send us we successfully completed the task
 
 
 ```sql
-    SELECT * from tasks WHERE id= $1 FOR UPDATE
-```
+SELECT * from tasks WHERE id= $1  FOR UPDATE
 
-
-```sql
 UPDATE health_check_entries
 SET worker_finished= true
 WHERE task_id = :task_id
 AND pod_name= :pod_name
+AND worker_finished=false
 
+```
+
+
+```sql
 UPDATE tasks
 SET successful_at= NOW()
 WHERE id = :task_id;
@@ -153,68 +160,70 @@ If our worker task got failed
 we'll check if total_retry = current_retry
 
 ```sql
-
-    UPDATE health_check_entries
-    SET worker_finished= true
-    WHERE task_id = :task_id
-    AND pod_name= :pod_name;
-
-    UPDATE tasks SET
-    failed_at = array_append(failed_at, now()),
-    failed_reason = array_append(failed_reason, :reason)
-    WHERE id = :task_id
-    AND total_retry = current_retry
+UPDATE tasks SET
+failed_at = array_append(failed_at, now()),
+failed_reason = array_append(failed_reason, :reason)
+WHERE id = :task_id
 ```
 
 
 If our total_retry > current_retry
 
 ```sql
-    UPDATE health_check_entries
-    SET worker_finished= true
-    WHERE task_id = :task_id
-    AND pod_name= :pod_name;
 
 UPDATE tasks
 SET is_producible = true,
-    current_retry = current_retry + 1,
-    failed_at = array_append(failed_at, now()),
-    failed_reason = array_append(failed_reason, :reason)
+current_retry = current_retry + 1,
+failed_at = array_append(failed_at, now()),
+failed_reason = array_append(failed_reason, :reason)
 WHERE id = :task_id
-AND current_retry < total_retry;
-FOR UPDATE
 ```
 
 ### Retry and Failed Updater Service
 This service identifies tasks exceeding a 20-second (4 health-check failed) health check interval as dead worker, updating the `task database` with `failed_at` and a `failed_reason`.
 
+This service is only made for something unintended happen for example
+- network partition for more than 20 seconds
+- our task is taking more than 1 CPU 
+- our task is interfering with our heart beat logic
+
+This service worker with these assumption
+- Every worker is sending heart beats to our `Status Check Service` in every 5 seconds
+
+**Some ideas for future**
+For making sure that the container we think are terminated are terminated. we have to use k3s api and use pod_name to delete those containers forcefully
+
 Sql query for checking task which didn't send health-check for 20-second
 
 ```sql
 SELECT *
-FROM health_check_entres
+FROM health_check_entries
 WHERE last_time_health_check < NOW() - INTERVAL '20 seconds'
-AND worker_finished= true;
+AND worker_finished = false
+ORDER BY task_id, pod_name
+LIMIT 10
+FOR UPDATE SKIP LOCKED
 ```
-do this to get lock
+
+
+iterate through every single entry in health_check_entries
+and  do this first
 ```sql
-    SELECT * from tasks WHERE id= $1 FOR UPDATE
-```
+SELECT * from Tasks where id=:hc[i].id FOR UPDATE
+
+UPDATE health_check_entries SET 
+worker_finished=true where tasks_id=:task_id AND pod_name=:pod_name
+``
 
 -  if total_retry = current_retry
 
-```sql
--- with this query Retry and Failed updater service will not select this
-UPDATE health_check_entries  
-SET worker_finished= true
-WHERE task_id = :task_id;
 
+```sql
 UPDATE tasks
-    SET failed_at = NOW(),
-        failed_at = array_append(failed_at, now()),
-        failed_reason = array_append(failed_reason, :reason)
-    WHERE id = :task_id
-    AND total_retry = current_retry
+SET failed_at = NOW(),
+failed_at = array_append(failed_at, now()),
+failed_reason = array_append(failed_reason, :reason)
+WHERE id = :task_id
 ```
 - if our total_retry > current_retry
 
@@ -225,18 +234,23 @@ SET is_producible = true,
     failed_at = array_append(failed_at, now()),
     failed_reason = array_append(failed_reason, :reason)
 WHERE id = :task_id
-AND current_retry < total_retry;
 ```
 
-### Remove Health Check Database Entries (Remove HS DB Entries)
 
-This cron job executes in every 10 minutes to remove obsolete entries from the `Health Check Database` that are no longer needed. 
+### Remove Health Check Database Entries (Remove HS DB Entries)
+because we know we are terminating task in 20 minute so even in network failure it should have entry which will be not updated because worker_finished=true (that mean they spwan new worker)
+
+This cron job executes in every 5 minutes to remove obsolete entries from the `Health Check Database` that are no longer needed. 
+
+Assumption this service make
+- Our main worker will make sure that our task will be finished in 20 minute
 
 **SQL query**
 
 ```sql
-DELETE FROM health_check 
-WHERE worker_finished= true;
+DELETE FROM health_check_entries 
+WHERE worker_finished= true
+AND last_time_health_check >= NOW()- INTERVAl 20 MIN
 ```
 ### Things to consider before using this service 
 

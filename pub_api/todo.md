@@ -1,3 +1,6 @@
 - [ ] Do better Error handling
 - [ ] do better tracing
 - [ ] showing deserialize in error 
+- [ ] remove Task thingy from producer 
+- [ ] remove unneassary package from whole project
+- [ ] remove all warning

@@ -11,7 +11,6 @@ async fn main() {
         "info".to_string(),
         std::io::stdout,
     );
-    let config = get_configuration();
     init_subscriber(subscriber);
     let config = get_configuration();
     producer(&config).await;

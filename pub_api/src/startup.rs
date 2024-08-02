@@ -4,7 +4,6 @@ use axum::{
     serve::Serve,
     Router,
 };
-use sqlx::PgPool;
 use std::{sync::Arc, time::Duration};
 use tokio::net::TcpListener;
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};

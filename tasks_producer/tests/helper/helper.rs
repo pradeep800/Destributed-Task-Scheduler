@@ -2,6 +2,7 @@ use common::database::Database;
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use task_producer::configuration::{get_configuration, Config};
+use task_producer::tracing::{get_subscriber, init_subscriber};
 async fn migrate_and_get_db(database: &mut Database) -> PgPool {
     let mut connection =
         PgConnection::connect(database.get_connecting_string_without_db().as_str())
@@ -9,7 +10,6 @@ async fn migrate_and_get_db(database: &mut Database) -> PgPool {
             .expect("Failed to connect to Postgres");
     Lazy::force(&TRACING);
     database.database_db += &uuid::Uuid::new_v4().to_string();
-    println!("{:?}", database);
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, database.database_db).as_str())
         .await

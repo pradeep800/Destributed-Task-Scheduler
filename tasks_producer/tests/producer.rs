@@ -17,10 +17,16 @@ async fn testing_producer() {
     }
     tokio::select! {
         _ = task_producer => {
-            println!("task_producer completed");
         }
         _ = ten_second_sleep => {
-            println!("10 seconds elapsed");
         }
+    }
+    let tasks = sqlx::query!("SELECT * from Tasks")
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+    assert_eq!(tasks.len(), 22);
+    for i in 0..tasks.len() {
+        assert_eq!(tasks[i].is_producible, false);
     }
 }

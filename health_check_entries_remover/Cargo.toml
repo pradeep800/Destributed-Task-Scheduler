@@ -1,0 +1,18 @@
+[package]
+name = "remove_health_check_entry"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = {workspace=true}
+serde ={workspace=true} 
+serde-aux = {workspace=true}
+serde_json = {workspace=true}
+sqlx = {workspace=true}
+config = {workspace=true}
+tokio ={workspace=true}
+uuid = { workspace=true}
+common={path="../common"}
+openssl = {workspace=true} 
+tasks = { version = "0.1.0", path = "../db/tasks" }
+health_checks = { version = "0.1.0", path = "../db/health_checks" }

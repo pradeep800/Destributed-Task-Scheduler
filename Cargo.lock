@@ -2251,11 +2251,18 @@ checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 name = "remove_health_check_entry"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "common",
  "config",
+ "health_checks",
  "openssl",
+ "serde",
+ "serde-aux",
+ "serde_json",
  "sqlx",
+ "tasks",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -2302,8 +2309,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "retry_and_failed_updator_service"
+name = "retry_and_failed_updater_service"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aws-config",
+ "chrono",
+ "common",
+ "config",
+ "health_checks",
+ "once_cell",
+ "openssl",
+ "reqwest",
+ "serde",
+ "serde-aux",
+ "serde_json",
+ "sqlx",
+ "tasks",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-bunyan-formatter",
+ "tracing-subscriber",
+ "uuid",
+]
 
 [[package]]
 name = "rfc6979"
@@ -3079,7 +3108,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "task-producer"
+name = "task_producer"
 version = "0.1.0"
 dependencies = [
  "aws-sdk-sqs",
@@ -3089,10 +3118,13 @@ dependencies = [
  "once_cell",
  "openssl",
  "serde",
+ "serde_json",
  "sqlx",
  "tasks",
  "tokio",
  "tracing",
+ "tracing-bunyan-formatter",
+ "tracing-subscriber",
  "uuid",
 ]
 
@@ -3880,6 +3912,7 @@ dependencies = [
 name = "worker"
 version = "0.1.0"
 dependencies = [
+ "openssl",
  "tokio",
 ]
 

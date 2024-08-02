@@ -1,6 +1,0 @@
-[package]
-name = "retry_and_failed_updator_service"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]

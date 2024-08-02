@@ -3,6 +3,7 @@ use axum::{
     response::IntoResponse,
 };
 use health_checks::HealthCheckDb;
+use sqlx::Acquire;
 use std::sync::Arc;
 use tasks::TasksDb;
 
@@ -19,30 +20,35 @@ pub async fn update_status(
     Extension(claims): Extension<Claims>,
     Json(body): Json<UpdateStatusBody>,
 ) -> Result<impl IntoResponse, AppError> {
-    let task_db = TasksDb::new(&state.task_pool);
-    let health_check_db = HealthCheckDb::new(&state.health_check_pool);
-    // when  worker send us success
+    let mut task_transaction = state
+        .task_pool
+        .begin()
+        .await
+        .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
+    let mut health_check_transaction = state
+        .health_check_pool
+        .begin()
+        .await
+        .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
+    //lets get lock for  Task which we currently processing
+    let current_task = TasksDb::get_lock_with_id(&mut task_transaction, claims.task_id)
+        .await
+        .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
+    //our  worker is finished  (successful/unsuccessful)
+    HealthCheckDb::worker_finished(
+        &mut health_check_transaction,
+        claims.task_id,
+        claims.pod_name.as_str(),
+    )
+    .await
+    .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
     if body.status == "SUCCESS" {
-        // update the task as success and health check  task_completed as true
-        task_db
-            .update_successful_task_with_id(claims.task_id)
-            .await
-            .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
-        health_check_db
-            .worker_finished(claims.task_id, &claims.pod_name)
+        TasksDb::update_successful_task_with_id(&mut task_transaction, claims.task_id)
             .await
             .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
     }
     // if worker send us failed
     else if body.status == "FAILED" {
-        let mut task_transaction = state
-            .task_pool
-            .begin()
-            .await
-            .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
-        let current_task = TasksDb::get_lock_with_id(&mut task_transaction, claims.task_id)
-            .await
-            .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
         // we will check if total_retry > current_retry do these operation
         // current_retry++
         // failed_at=now
@@ -71,21 +77,31 @@ pub async fn update_status(
             )
             .await
             .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
-            health_check_db
-                .worker_finished(claims.task_id, &claims.pod_name)
-                .await
-                .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
         }
-        task_transaction
-            .commit()
-            .await
-            .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
     }
     //  Unknown status
     else {
+        // If Unknown status rollback the transaction
+        task_transaction
+            .rollback()
+            .await
+            .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
+        health_check_transaction
+            .rollback()
+            .await
+            .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
+
         return Err(AppError::InternalServerError(anyhow::anyhow!(
             "Unknown type of status"
         )));
     }
+    task_transaction
+        .commit()
+        .await
+        .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
+    health_check_transaction
+        .commit()
+        .await
+        .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
     Ok(())
 }
