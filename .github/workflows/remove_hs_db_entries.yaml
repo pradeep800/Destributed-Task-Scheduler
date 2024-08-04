@@ -1,5 +1,4 @@
-name: Publish Retry And Failed Updater
-
+name: Publish Remove Health Check Entries
 on:
   [workflow_dispatch]
 
@@ -7,7 +6,7 @@ env:
   CARGO_TERM_COLOR: always
   SQLX_VERSION: 0.7.4
   SQLX_FEATURES: "rustls,postgres"
-  file_name: "retry_and_failed_updater_service"
+  file_name: "health_check_entries_remover"
 
 jobs:
   test:
@@ -54,16 +53,11 @@ jobs:
       - name: Run tests
         run: TEST_LOG=true cargo test -p ${{env.file_name}}  
         env:
-          APP__TASKS__DATABASE_USER: ${{ secrets.APP__TASKS__DATABASE_USER }}
-          APP__TASKS__DATABASE_DB: ${{ secrets.APP__TASKS__DATABASE_DB }}
-          APP__TASKS__DATABASE_PASSWORD: ${{ secrets.APP__TASKS__DATABASE_PASSWORD }}
-          APP__TASKS__DATABASE_PORT: ${{ secrets.APP__TASKS__DATABASE_PORT }}
-          APP__TASKS__DATABASE_HOST: ${{ secrets.APP__TASKS__DATABASE_HOST }}
-          APP__HEALTH_CHECK__DATABASE_USER: ${{ secrets.APP__HEALTH_CHECK__DATABASE_USER }}
-          APP__HEALTH_CHECK__DATABASE_DB: ${{ secrets.APP__HEALTH_CHECK__DATABASE_DB }}
-          APP__HEALTH_CHECK__DATABASE_PASSWORD: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PASSWORD }}
-          APP__HEALTH_CHECK__DATABASE_PORT: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PORT }}
-          APP__HEALTH_CHECK__DATABASE_HOST: ${{ secrets.APP__HEALTH_CHECK__DATABASE_HOST }}
+          APP__DATABASE_USER: ${{ secrets.APP__HEALTH_CHECK__DATABASE_USER }}
+          APP__DATABASE_DB: ${{ secrets.APP__HEALTH_CHECK__DATABASE_DB }}
+          APP__DATABASE_PASSWORD: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PASSWORD }}
+          APP__DATABASE_PORT: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PORT }}
+          APP__DATABASE_HOST: ${{ secrets.APP__HEALTH_CHECK__DATABASE_HOST }}
   publish_image:
     name: Publish Docker Image
     runs-on: ubuntu-latest
