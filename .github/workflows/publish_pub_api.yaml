@@ -19,6 +19,7 @@ jobs:
           POSTGRES_DB: tasks
         ports:
           - 5432:5432
+# this is also needed because of sqlx prepare
       postgres2:
         image: postgres
         env:

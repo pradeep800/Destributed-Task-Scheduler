@@ -17,10 +17,9 @@ pub fn get_configuration() -> Config {
         .expect("Failed to convert path to string");
 
     let settings = config::Config::builder()
-        .add_source(config::File::new(
-            configuration_directory,
-            config::FileFormat::Yaml,
-        ))
+        .add_source(
+            config::File::new(configuration_directory, config::FileFormat::Yaml).required(false),
+        )
         .add_source(
             config::Environment::with_prefix("APP")
                 .prefix_separator("_")
