@@ -1,4 +1,5 @@
 name: Publish Image to Docker Hub
+
 on:
   [workflow_dispatch]
 
@@ -12,33 +13,39 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: tasks 
+          POSTGRES_DB: tasks
         ports:
           - 5432:5432
     steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
       - name: Run tests
         run: SQLX_OFFLINE=true TEST_LOG=true cargo test
         env:
-          APP__DATABASE_PORT=${{secrets.APP__TASKS_PORT}}
-          APP__DATABASE_DATABASE_USER=${{secrets.APP__TASKS_DATABASE_USER}}
-          APP__DATABASE_DATABASE_PASSWORD=${{secrets.APP__TASKS_DATABASE_PASSWORD}}
-          APP__DATABASE_DATABASE_DB=${{secrets.APP__TASKS_DATABASE_DB}}
-          APP__DATABASE_DATABASE_HOST=${{secrets.APP__TASKS_DATABASE_HOST}}
-          APP__S3_REGION=${{secrets.APP__S3_REGION}}
-          APP__S3_ACCESS_KEY=${{secrets.APP__S3_ACCESS_KEY}}
-          APP__S3_SECRET_KEY=${{secrets.APP__S3_SECRET_KEY}}
-          APP__S3_BUCKET=${{secrets.APP__S3_BUCKET}}
+          APP__DATABASE_PORT: ${{ secrets.APP__TASKS_PORT }}
+          APP__DATABASE_DATABASE_USER: ${{ secrets.APP__TASKS_DATABASE_USER }}
+          APP__DATABASE_DATABASE_PASSWORD: ${{ secrets.APP__TASKS_DATABASE_PASSWORD }}
+          APP__DATABASE_DATABASE_DB: ${{ secrets.APP__TASKS_DATABASE_DB }}
+          APP__DATABASE_DATABASE_HOST: ${{ secrets.APP__TASKS_DATABASE_HOST }}
+          APP__S3_REGION: ${{ secrets.APP__S3_REGION }}
+          APP__S3_ACCESS_KEY: ${{ secrets.APP__S3_ACCESS_KEY }}
+          APP__S3_SECRET_KEY: ${{ secrets.APP__S3_SECRET_KEY }}
+          APP__S3_BUCKET: ${{ secrets.APP__S3_BUCKET }}
+
   publish_image:
+    name: Publish Docker Image
     runs-on: ubuntu-latest
+    needs: test
     steps:
-      - name: checkout
+      - name: Checkout code
         uses: actions/checkout@v3
-      - name: build
+      - name: Build Docker image
         run: |
           docker build . -t pradeep800/pub_api:latest -f ./pub_api/Dockerfile
-      - name: publish
+      - name: Publish Docker image
         run: |
-          docker login -u pradeep800 -p ${{ secrets.DOCKER_HUB_TOKEN }}
+          echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u pradeep800 --password-stdin
           docker push pradeep800/pub_api:latest
+
