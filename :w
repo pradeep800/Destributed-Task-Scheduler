@@ -61,6 +61,7 @@ jobs:
           APP__S3__ACCESS_KEY: ${{ secrets.APP__S3__ACCESS_KEY }}
           APP__S3__SECRET_KEY: ${{ secrets.APP__S3__SECRET_KEY }}
           APP__S3__BUCKET: ${{ secrets.APP__S3__BUCKET }}
+
   publish_image:
     name: Publish Docker Image
     runs-on: ubuntu-latest
@@ -68,18 +69,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      
       - name: Get short SHA
         id: slug
-        run: echo "sha7=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
-      
+        run: echo "sha7=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT  
       - name: Build Docker image
         run: |
-          docker build . -t pradeep800/pub_api:${{ steps.slug.outputs.sha7 }} -f ./pub_api/Dockerfile
+          docker build . -t pradeep800/pub_api:${{ steps.slug.ouputs.sh7}} -f ./pub_api/Dockerfile
           docker tag pradeep800/pub_api:${{ steps.slug.outputs.sha7 }} pradeep800/pub_api:latest
-      
       - name: Publish Docker image
         run: |
           echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u pradeep800 --password-stdin
           docker push pradeep800/pub_api:${{ steps.slug.outputs.sha7 }}
           docker push pradeep800/pub_api:latest
+

@@ -50,17 +50,18 @@ jobs:
         run: |
           cargo sqlx prepare --workspace --check
       - name: Run tests
-        run: TEST_LOG=true cargo test -p pub_api
+        run: TEST_LOG=true cargo test -p tasks_producer
         env:
           APP__DATABASE__DATABASE_USER: ${{ secrets.APP__DATABASE__DATABASE_USER }}
           APP__DATABASE__DATABASE_DB: ${{ secrets.APP__DATABASE__DATABASE_DB }}
           APP__DATABASE__DATABASE_PASSWORD: ${{ secrets.APP__DATABASE__DATABASE_PASSWORD }}
           APP__DATABASE__DATABASE_PORT: ${{ secrets.APP__DATABASE__DATABASE_PORT }}
           APP__DATABASE__DATABASE_HOST: ${{ secrets.APP__DATABASE__DATABASE_HOST }}
-          APP__S3__REGION: ${{ secrets.APP__S3__REGION }}
-          APP__S3__ACCESS_KEY: ${{ secrets.APP__S3__ACCESS_KEY }}
-          APP__S3__SECRET_KEY: ${{ secrets.APP__S3__SECRET_KEY }}
-          APP__S3__BUCKET: ${{ secrets.APP__S3__BUCKET }}
+          APP__SQS__REGION: ${{ secrets.APP__SQS__REGION }}
+          APP__SQS__ACCESS_KEY: ${{ secrets.APP__SQS__ACCESS_KEY }}
+          APP__SQS__SECRET_KEY: ${{ secrets.APP__SQS__SECRET_KEY }}
+          APP__SQS__QUEUE_URL: ${{ secrets.APP__SQS__QUEUE_URL }}
+          APP__SQS__QUEUE: ${{ secrets.APP__SQS__QUEUE}}
   publish_image:
     name: Publish Docker Image
     runs-on: ubuntu-latest
@@ -75,11 +76,11 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build . -t pradeep800/pub_api:${{ steps.slug.outputs.sha7 }} -f ./pub_api/Dockerfile
-          docker tag pradeep800/pub_api:${{ steps.slug.outputs.sha7 }} pradeep800/pub_api:latest
+          docker build . -t pradeep800/tasks_producer:${{ steps.slug.outputs.sha7 }} -f ./tasks_producer/Dockerfile
+          docker tag pradeep800/tasks_producer:${{ steps.slug.outputs.sha7 }} pradeep800/tasks_producer:latest
       
       - name: Publish Docker image
         run: |
           echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u pradeep800 --password-stdin
-          docker push pradeep800/pub_api:${{ steps.slug.outputs.sha7 }}
-          docker push pradeep800/pub_api:latest
+          docker push pradeep800/tasks_producer:${{ steps.slug.outputs.sha7 }}
+          docker push pradeep800/tasks_producer:latest
