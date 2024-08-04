@@ -52,15 +52,15 @@ jobs:
       - name: Run tests
         run: TEST_LOG=true cargo test -p pub_api
         env:
-          APP__DATABASE_PORT: ${{ secrets.APP__TASKS_PORT }}
-          APP__DATABASE_DATABASE_USER: ${{ secrets.APP__TASKS_DATABASE_USER }}
-          APP__DATABASE_DATABASE_PASSWORD: ${{ secrets.APP__TASKS_DATABASE_PASSWORD }}
-          APP__DATABASE_DATABASE_DB: ${{ secrets.APP__TASKS_DATABASE_DB }}
-          APP__DATABASE_DATABASE_HOST: ${{ secrets.APP__TASKS_DATABASE_HOST }}
-          APP__S3_REGION: ${{ secrets.APP__S3_REGION }}
-          APP__S3_ACCESS_KEY: ${{ secrets.APP__S3_ACCESS_KEY }}
-          APP__S3_SECRET_KEY: ${{ secrets.APP__S3_SECRET_KEY }}
-          APP__S3_BUCKET: ${{ secrets.APP__S3_BUCKET }}
+          APP__DATABASE__DATABASE_USER: ${{ secrets.APP__DATABASE__DATABASE_USER }}
+          APP__DATABASE__DATABASE_DB: ${{ secrets.APP__DATABASE__DATABASE_DB }}
+          APP__DATABASE__DATABASE_PASSWORD: ${{ secrets.APP__DATABASE__DATABASE_PASSWORD }}
+          APP__DATABASE__DATABASE_PORT: ${{ secrets.APP__DATABASE__DATABASE_PORT }}
+          APP__DATABASE__DATABASE_HOST: ${{ secrets.APP__DATABASE__DATABASE_HOST }}
+          APP__S3__REGION: ${{ secrets.APP__S3__REGION }}
+          APP__S3__ACCESS_KEY: ${{ secrets.APP__S3__ACCESS_KEY }}
+          APP__S3__SECRET_KEY: ${{ secrets.APP__S3__SECRET_KEY }}
+          APP__S3__BUCKET: ${{ secrets.APP__S3__BUCKET }}
 
   publish_image:
     name: Publish Docker Image

@@ -24,7 +24,7 @@ pub fn get_configuration() -> Config {
         )
         .add_source(
             config::Environment::with_prefix("APP")
-                .prefix_separator("_")
+                .prefix_separator("__")
                 .separator("__"),
         )
         .build()
