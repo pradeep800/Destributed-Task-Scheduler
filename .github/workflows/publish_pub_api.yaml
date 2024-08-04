@@ -17,12 +17,27 @@ jobs:
         ports:
           - 5432:5432
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sqlx-${{ env.SQLX_VERSION }}
+      - name: Install sqlx-cli
+        run:
+            cargo install sqlx-cli
+            --version=${{ env.SQLX_VERSION }}
+            --features ${{ env.SQLX_FEATURES }}
+            --no-default-features
+            --locked
+      - name: Migrate database
+        run: |
+          sudo apt-get install libpq-dev -y
+          SKIP_DOCKER=true ./scripts/init_db.sh
+      - name: Check sqlx-data.json is up-to-date
+        run: |
+          cargo sqlx prepare --workspace --check
       - name: Run tests
-        run: SQLX_OFFLINE=true TEST_LOG=true cargo test -p pub_api 
+        run: TEST_LOG=true cargo test
         env:
           APP__DATABASE_PORT: ${{ secrets.APP__TASKS_PORT }}
           APP__DATABASE_DATABASE_USER: ${{ secrets.APP__TASKS_DATABASE_USER }}
@@ -41,11 +56,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: Get short SHA
+        id: slug
+        run: echo "::set-output name=sha7::$(echo ${GITHUB_SHA} | cut -c1-7)"
       - name: Build Docker image
         run: |
-          docker build . -t pradeep800/pub_api:latest -f ./pub_api/Dockerfile
+          docker build . -t pradeep800/pub_api:${{ steps.slug.outputs.sha7 }} -f ./pub_api/Dockerfile
+          docker tag pradeep800/pub_api:${{ steps.slug.outputs.sha7 }} pradeep800/pub_api:latest
       - name: Publish Docker image
         run: |
           echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u pradeep800 --password-stdin
+          docker push pradeep800/pub_api:${{ steps.slug.outputs.sha7 }}
           docker push pradeep800/pub_api:latest
 
