@@ -63,6 +63,7 @@ jobs:
           APP__HEALTH_CHECK__DATABASE_PASSWORD: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PASSWORD }}
           APP__HEALTH_CHECK__DATABASE_PORT: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PORT }}
           APP__HEALTH_CHECK__DATABASE_HOST: ${{ secrets.APP__HEALTH_CHECK__DATABASE_HOST }}
+          APP__JWT_SECRET: ${{ secrets.APP__JWT_SECRET }}
   publish_image:
     name: Publish Docker Image
     runs-on: ubuntu-latest
