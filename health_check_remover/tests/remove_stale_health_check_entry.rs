@@ -1,6 +1,6 @@
 use common::helper::spawn;
+use health_check_remover::process::process;
 use health_checks::{faker::HealthCheckEntryFaker, HealthCheckDb};
-use remove_health_check_entry::process::process;
 mod common;
 #[tokio::test]
 async fn remove_stale_entries() {

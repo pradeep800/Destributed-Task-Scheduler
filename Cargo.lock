@@ -1242,6 +1242,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "health_check_remover"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "common",
+ "config",
+ "health_checks",
+ "openssl",
+ "serde",
+ "serde-aux",
+ "serde_json",
+ "sqlx",
+ "tasks",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "health_checks"
 version = "0.1.0"
 dependencies = [
@@ -2246,24 +2264,6 @@ name = "regex-syntax"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
-
-[[package]]
-name = "remove_health_check_entry"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "common",
- "config",
- "health_checks",
- "openssl",
- "serde",
- "serde-aux",
- "serde_json",
- "sqlx",
- "tasks",
- "tokio",
- "uuid",
-]
 
 [[package]]
 name = "reqwest"

@@ -1,4 +1,4 @@
-name: Publish Remove Health Check Entries
+name: Publish Health Check Remover 
 on:
   [workflow_dispatch]
 
@@ -6,7 +6,7 @@ env:
   CARGO_TERM_COLOR: always
   SQLX_VERSION: 0.7.4
   SQLX_FEATURES: "rustls,postgres"
-  file_name: "health_check_entries_remover"
+  file_name: "health_check_remover"
 
 jobs:
   test:

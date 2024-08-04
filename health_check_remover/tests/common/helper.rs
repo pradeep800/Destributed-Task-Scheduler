@@ -1,5 +1,5 @@
 use common::database::Database;
-use remove_health_check_entry::configuration::get_configuration;
+use health_check_remover::configuration::get_configuration;
 use sqlx::{Connection, Executor, PgConnection};
 #[derive(Debug)]
 pub struct AppInfo {

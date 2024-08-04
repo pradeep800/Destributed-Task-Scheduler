@@ -1,5 +1,5 @@
 [package]
-name = "remove_health_check_entry"
+name = "health_check_remover"
 version = "0.1.0"
 edition = "2021"
 

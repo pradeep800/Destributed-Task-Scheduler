@@ -1,4 +1,4 @@
-use remove_health_check_entry::{configuration::get_configuration, process::process};
+use health_check_remover::{configuration::get_configuration, process::process};
 
 #[tokio::main]
 async fn main() {
