@@ -5,3 +5,4 @@
 - [ ] remove unneassary package from whole project
 (with cargo instlal something soehting)
 - [ ] remove all warning
+- [ ] why docker caching is not working cached image
