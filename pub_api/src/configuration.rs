@@ -4,7 +4,9 @@ use common::{database::Database, s3::S3};
 use std::path::PathBuf;
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Config {
+    #[serde(alias = "S3")]
     pub s3: S3,
+    #[serde(alias = "DATABASE")]
     pub database: Database,
 }
 
