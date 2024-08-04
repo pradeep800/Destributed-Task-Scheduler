@@ -50,7 +50,7 @@ jobs:
         run: |
           cargo sqlx prepare --workspace --check
       - name: Run tests
-        run: TEST_LOG=true cargo test -p tasks_producer
+        run: TEST_LOG=true cargo test -p task_producer
         env:
           APP__DATABASE__DATABASE_USER: ${{ secrets.APP__DATABASE__DATABASE_USER }}
           APP__DATABASE__DATABASE_DB: ${{ secrets.APP__DATABASE__DATABASE_DB }}
