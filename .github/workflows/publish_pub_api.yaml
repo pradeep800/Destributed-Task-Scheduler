@@ -49,7 +49,7 @@ jobs:
         run: |
           cargo sqlx prepare --workspace --check
       - name: Run tests
-        run: TEST_LOG=true cargo test
+        run: TEST_LOG=true cargo test -p pub_api
         env:
           APP__DATABASE_PORT: ${{ secrets.APP__TASKS_PORT }}
           APP__DATABASE_DATABASE_USER: ${{ secrets.APP__TASKS_DATABASE_USER }}
