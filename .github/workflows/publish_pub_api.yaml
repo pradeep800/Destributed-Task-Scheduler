@@ -22,7 +22,7 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests
-        run: SQLX_OFFLINE=true TEST_LOG=true cargo test
+        run: SQLX_OFFLINE=true TEST_LOG=true cargo test -p pub_api 
         env:
           APP__DATABASE_PORT: ${{ secrets.APP__TASKS_PORT }}
           APP__DATABASE_DATABASE_USER: ${{ secrets.APP__TASKS_DATABASE_USER }}
