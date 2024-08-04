@@ -53,11 +53,11 @@ jobs:
       - name: Run tests
         run: TEST_LOG=true cargo test -p ${{env.file_name}} 
         env:
-          APP__DATABASE__DATABASE_USER: ${{ secrets.APP__DATABASE__DATABASE_USER }}
-          APP__DATABASE__DATABASE_DB: ${{ secrets.APP__DATABASE__DATABASE_DB }}
-          APP__DATABASE__DATABASE_PASSWORD: ${{ secrets.APP__DATABASE__DATABASE_PASSWORD }}
-          APP__DATABASE__DATABASE_PORT: ${{ secrets.APP__DATABASE__DATABASE_PORT }}
-          APP__DATABASE__DATABASE_HOST: ${{ secrets.APP__DATABASE__DATABASE_HOST }}
+          APP__DATABASE__DATABASE_USER: ${{ secrets.APP__TASKS__DATABASE_USER }}
+          APP__DATABASE__DATABASE_DB: ${{ secrets.APP__TASKS__DATABASE_DB }}
+          APP__DATABASE__DATABASE_PASSWORD: ${{ secrets.APP__TASKS__DATABASE_PASSWORD }}
+          APP__DATABASE__DATABASE_PORT: ${{ secrets.APP__TASKS__DATABASE_PORT }}
+          APP__DATABASE__DATABASE_HOST: ${{ secrets.APP__TASKS__DATABASE_HOST }}
           APP__S3__REGION: ${{ secrets.APP__S3__REGION }}
           APP__S3__ACCESS_KEY: ${{ secrets.APP__S3__ACCESS_KEY }}
           APP__S3__SECRET_KEY: ${{ secrets.APP__S3__SECRET_KEY }}
