@@ -3,7 +3,10 @@ use common::database::Database;
 use std::path::PathBuf;
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Config {
+    #[serde(alias = "TASKS")]
     pub tasks_db: Database,
+
+    #[serde(alias = "HEALTH_DB")]
     pub health_db: Database,
 }
 
