@@ -1,4 +1,4 @@
-name: Publish Image to Docker Hub
+name: Publish Retry And Failed Updater
 
 on:
   [workflow_dispatch]

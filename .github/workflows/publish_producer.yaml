@@ -1,4 +1,4 @@
-name: Publish Image to Docker Hub
+name: Publish Task Producer Image
 
 on:
   [workflow_dispatch]
@@ -6,6 +6,7 @@ env:
   CARGO_TERM_COLOR: always
   SQLX_VERSION: 0.7.4
   SQLX_FEATURES: "rustls,postgres"
+  file_name: tasks_producer
 jobs:
   test:
     name: Test
@@ -76,11 +77,11 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build . -t pradeep800/tasks_producer:${{ steps.slug.outputs.sha7 }} -f ./tasks_producer/Dockerfile
-          docker tag pradeep800/tasks_producer:${{ steps.slug.outputs.sha7 }} pradeep800/tasks_producer:latest
+          docker build . -t pradeep800/${{env.file_name}}:${{ steps.slug.outputs.sha7 }} -f ./${{env.file_name}}/Dockerfile
+          docker tag pradeep800/${{env.filename}}:${{ steps.slug.outputs.sha7 }} pradeep800/${{env.file_name}}:latest
       
       - name: Publish Docker image
         run: |
           echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u pradeep800 --password-stdin
-          docker push pradeep800/tasks_producer:${{ steps.slug.outputs.sha7 }}
-          docker push pradeep800/tasks_producer:latest
+          docker push pradeep800/${{env.file_name}}:${{ steps.slug.outputs.sha7 }}
+          docker push pradeep800/${{env.file_name}}:latest
