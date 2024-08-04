@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM health_checks_entries WHERE task_id = $1",
+  "query": "SELECT * FROM health_check_entries WHERE task_id = $1 AND pod_name= $2",
   "describe": {
     "columns": [
       {
@@ -15,20 +15,27 @@
       },
       {
         "ordinal": 2,
-        "name": "task_completed",
+        "name": "worker_finished",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "pod_name",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
       "Left": [
-        "Int4"
+        "Int4",
+        "Text"
       ]
     },
     "nullable": [
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "95f3b5c2fd6a87ef31dfcd33c4337a98d5ed612443fad82e0655a21ceb6937b1"
+  "hash": "46ed162d2b73987ad03ddebec5400276f86fb6bc2fc9b3471b11658773081a76"
 }

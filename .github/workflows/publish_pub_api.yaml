@@ -3,6 +3,41 @@ on:
   [workflow_dispatch]
 
 jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres1:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: tasks 
+        ports:
+          - 5432:5432
+      postgres2:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: health_check 
+        ports:
+          - 5433:5432
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run tests
+        run: SQLX_OFFLINE=true TEST_LOG=true cargo test
+        env:
+          APP__DATABASE_PORT=${{secrets.APP__TASKS_PORT}}
+          APP__DATABASE_DATABASE_USER=${{secrets.APP__TASKS_DATABASE_USER}}
+          APP__DATABASE_DATABASE_PASSWORD=${{secrets.APP__TASKS_DATABASE_PASSWORD}}
+          APP__DATABASE_DATABASE_DB=${{secrets.APP__TASKS_DATABASE_DB}}
+          APP__DATABASE_DATABASE_HOST=${{secrets.APP__TASKS_DATABASE_HOST}}
+          APP__S3_REGION=${{secrets.APP__S3_REGION}}
+          APP__S3_ACCESS_KEY=${{secrets.APP__S3_ACCESS_KEY}}
+          APP__S3_SECRET_KEY=${{secrets.APP__S3_SECRET_KEY}}
+          APP__S3_BUCKET=${{secrets.APP__S3_BUCKET}}
   publish_image:
     runs-on: ubuntu-latest
     steps:

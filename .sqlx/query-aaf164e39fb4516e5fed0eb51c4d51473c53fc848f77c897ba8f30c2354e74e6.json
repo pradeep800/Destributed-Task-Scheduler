@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tasks SET failed_ats=array_append(failed_ats,now()),\n             is_producible=false,\n             failed_reasons=array_append(failed_reasons,$1)\n             WHERE id=$2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aaf164e39fb4516e5fed0eb51c4d51473c53fc848f77c897ba8f30c2354e74e6"
+}
