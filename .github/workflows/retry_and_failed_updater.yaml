@@ -1,0 +1,88 @@
+name: Publish Image to Docker Hub
+
+on:
+  [workflow_dispatch]
+
+env:
+  CARGO_TERM_COLOR: always
+  SQLX_VERSION: 0.7.4
+  SQLX_FEATURES: "rustls,postgres"
+  file_name: "retry_and_failed_updater_service"
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres1:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: tasks
+        ports:
+          - 5432:5432
+      postgres2:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: health_checks 
+        ports:
+          - 5433:5432
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sqlx-${{ env.SQLX_VERSION }}
+      - name: Install sqlx-cli
+        run:
+            cargo install sqlx-cli
+            --version=${{ env.SQLX_VERSION }}
+            --features ${{ env.SQLX_FEATURES }}
+            --no-default-features
+            --locked
+      - name: Migrate database
+        run: |
+          sudo apt-get install libpq-dev -y
+          SKIP_DOCKER=true ./scripts/migrate_tasks.sh
+          ./scripts/migrate_health_checks.sh
+      - name: Check sqlx-data.json is up-to-date
+        run: |
+          cargo sqlx prepare --workspace --check
+      - name: Run tests
+        run: TEST_LOG=true cargo test -p   
+        env:
+          APP__TASKS__DATABASE_USER: ${{ secrets.APP__TASKS__DATABASE_USER }}
+          APP__TASKS__DATABASE_DB: ${{ secrets.APP__TASKS__DATABASE_DB }}
+          APP__TASKS__DATABASE_PASSWORD: ${{ secrets.APP__TASKS__DATABASE_PASSWORD }}
+          APP__TASKS__DATABASE_PORT: ${{ secrets.APP__TASKS__DATABASE_PORT }}
+          APP__TASKS__DATABASE_HOST: ${{ secrets.APP__TASKS__DATABASE_HOST }}
+          APP__HEALTH_CHECK__DATABASE_USER: ${{ secrets.APP__HEALTH_CHECK__DATABASE_USER }}
+          APP__HEALTH_CHECK__DATABASE_DB: ${{ secrets.APP__HEALTH_CHECK__DATABASE_DB }}
+          APP__HEALTH_CHECK__DATABASE_PASSWORD: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PASSWORD }}
+          APP__HEALTH_CHECK__DATABASE_PORT: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PORT }}
+          APP__HEALTH_CHECK__DATABASE_HOST: ${{ secrets.APP__HEALTH_CHECK__DATABASE_HOST }}
+  publish_image:
+    name: Publish Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Get short SHA
+        id: slug
+        run: echo "sha7=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
+      
+      - name: Build Docker image
+        run: |
+          docker build . -t pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }} -f ./${{ env.file_name }}/Dockerfile
+          docker tag pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }} pradeep800/${{ env.file_name }}:latest
+      
+      - name: Publish Docker image
+        run: |
+          echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u pradeep800 --password-stdin
+          docker push pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }}
+          docker push pradeep800/${{ env.file_name }}:latest    docker push pradeep800/retry_and_failed_updater:latest
