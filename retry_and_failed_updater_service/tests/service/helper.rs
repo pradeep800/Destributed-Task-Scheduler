@@ -23,17 +23,17 @@ pub async fn migrate_and_get_db(config: &mut Config) {
     //start migration of task pool
 
     let mut task_db_connection =
-        PgConnection::connect(config.tasks_db.get_connecting_string_without_db().as_str())
+        PgConnection::connect(config.tasks.get_connecting_string_without_db().as_str())
             .await
             .expect("Failed to connect to Postgres");
 
-    config.tasks_db.database_db += &uuid::Uuid::new_v4().to_string();
+    config.tasks.database_db += &uuid::Uuid::new_v4().to_string();
     task_db_connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, config.tasks_db.database_db).as_str())
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.tasks.database_db).as_str())
         .await
         .expect("Failed to create database.");
 
-    let task_pool = config.tasks_db.get_pool().await;
+    let task_pool = config.tasks.get_pool().await;
 
     sqlx::migrate!("./../db/tasks/migrations")
         .run(&task_pool)
@@ -41,17 +41,21 @@ pub async fn migrate_and_get_db(config: &mut Config) {
         .expect("Failed to migrate the database");
 
     //start migration of health_check_pool
-    let mut health_check_connection =
-        PgConnection::connect(config.health_db.get_connecting_string_without_db().as_str())
-            .await
-            .expect("Failed to connect to Postgres");
-    config.health_db.database_db += &uuid::Uuid::new_v4().to_string();
+    let mut health_check_connection = PgConnection::connect(
+        config
+            .health_check
+            .get_connecting_string_without_db()
+            .as_str(),
+    )
+    .await
+    .expect("Failed to connect to Postgres");
+    config.health_check.database_db += &uuid::Uuid::new_v4().to_string();
     health_check_connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, config.health_db.database_db).as_str())
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.health_check.database_db).as_str())
         .await
         .expect("Failed to create database.");
 
-    let health_check_pool = config.health_db.get_pool().await;
+    let health_check_pool = config.health_check.get_pool().await;
     sqlx::migrate!("./../db/health_checks/migrations")
         .run(&health_check_pool)
         .await

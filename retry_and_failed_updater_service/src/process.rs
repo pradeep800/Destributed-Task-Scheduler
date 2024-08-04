@@ -7,9 +7,9 @@ use tokio::time::sleep;
 use tracing::error;
 
 pub async fn process(config: &Config) {
-    let health_db_pool = config.health_db.get_pool().await;
+    let health_db_pool = config.health_check.get_pool().await;
 
-    let task_db_pool = config.tasks_db.get_pool().await;
+    let task_db_pool = config.tasks.get_pool().await;
     loop {
         match process_iteration(&health_db_pool, &task_db_pool).await {
             Ok(_) => (),

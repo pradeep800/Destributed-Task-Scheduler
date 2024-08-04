@@ -10,9 +10,9 @@ use crate::helper::spawn;
 #[tokio::test]
 async fn update_failed_task() {
     let service = spawn().await;
-    let task_db_pool = service.config.tasks_db.get_pool().await;
+    let task_db_pool = service.config.tasks.get_pool().await;
     let task_db = TasksDb::new(&task_db_pool);
-    let health_db_pool = service.config.health_db.get_pool().await;
+    let health_db_pool = service.config.health_check.get_pool().await;
 
     let health_db = HealthCheckDb::new(&health_db_pool);
     // these try cannot have retry because total = current
