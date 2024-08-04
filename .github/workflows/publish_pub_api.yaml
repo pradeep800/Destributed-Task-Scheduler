@@ -4,7 +4,7 @@ on:
   [workflow_dispatch]
 env:
   CARGO_TERM_COLOR: always
-  SQLX_VERSION: 0.7.1
+  SQLX_VERSION: 0.7.4
   SQLX_FEATURES: "rustls,postgres"
 jobs:
   test:
@@ -19,6 +19,14 @@ jobs:
           POSTGRES_DB: tasks
         ports:
           - 5432:5432
+      postgres2:
+        image: postgres
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: health_checks 
+        ports:
+          - 5433:5432
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
@@ -36,6 +44,7 @@ jobs:
         run: |
           sudo apt-get install libpq-dev -y
           SKIP_DOCKER=true ./scripts/migrate_tasks.sh
+          ./scripts/migrate_health_checks.sh
       - name: Check sqlx-data.json is up-to-date
         run: |
           cargo sqlx prepare --workspace --check
