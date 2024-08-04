@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO health_check_entries (task_id, last_time_health_check,pod_name,worker_finished)\n            VALUES ($1, $2,$3,$4)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Timestamptz",
+        "Varchar",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6b65af24d633551efbb8081a95b46ea5e394c2a4c061773738ec0c0f6cb10253"
+}
