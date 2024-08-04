@@ -2,7 +2,10 @@ name: Publish Image to Docker Hub
 
 on:
   [workflow_dispatch]
-
+env:
+  CARGO_TERM_COLOR: always
+  SQLX_VERSION: 0.7.1
+  SQLX_FEATURES: "rustls,postgres"
 jobs:
   test:
     name: Test
@@ -32,7 +35,7 @@ jobs:
       - name: Migrate database
         run: |
           sudo apt-get install libpq-dev -y
-          SKIP_DOCKER=true ./scripts/init_db.sh
+          SKIP_DOCKER=true ./scripts/migrate_tasks.sh
       - name: Check sqlx-data.json is up-to-date
         run: |
           cargo sqlx prepare --workspace --check
