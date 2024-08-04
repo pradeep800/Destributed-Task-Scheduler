@@ -3,8 +3,8 @@ use common::database::Database;
 use std::path::PathBuf;
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Config {
-    pub tasks_db: Database,
-    pub health_db: Database,
+    pub tasks: Database,
+    pub health_check: Database,
     #[serde(alias = "JWT_SECRET")]
     pub jwt_secret: String,
 }

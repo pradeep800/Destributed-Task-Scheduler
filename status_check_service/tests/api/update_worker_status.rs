@@ -2,16 +2,19 @@ use common::jwt::Jwt;
 use health_checks::HealthCheckDb;
 use tasks::TasksDb;
 
-use crate::test_helpers::{generate_random_processing_task, spawn};
+use crate::{
+    health_check,
+    test_helpers::{generate_random_processing_task, spawn},
+};
 use axum::http::{HeaderMap, HeaderValue};
 
 #[tokio::test]
 pub async fn worker_sending_success_status() {
     let app = spawn().await;
-    let pool = app.config.tasks_db.get_pool().await;
+    let pool = app.config.tasks.get_pool().await;
     let task_db = TasksDb::new(&pool);
 
-    let health_pool = app.config.health_db.get_pool().await;
+    let health_pool = app.config.health_check.get_pool().await;
     let health_db = HealthCheckDb::new(&health_pool);
     let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
@@ -50,7 +53,7 @@ pub async fn worker_sending_success_status() {
 #[tokio::test]
 pub async fn worker_sending_failed_status() {
     let app = spawn().await;
-    let pool = app.config.tasks_db.get_pool().await;
+    let pool = app.config.tasks.get_pool().await;
     let task_db = TasksDb::new(&pool);
     let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();
@@ -84,7 +87,7 @@ pub async fn worker_sending_failed_status() {
 #[tokio::test]
 pub async fn worker_sending_random_status() {
     let app = spawn().await;
-    let pool = app.config.tasks_db.get_pool().await;
+    let pool = app.config.tasks.get_pool().await;
     let task_db = TasksDb::new(&pool);
     let new_task = generate_random_processing_task();
     task_db.create_task(&new_task).await.unwrap();

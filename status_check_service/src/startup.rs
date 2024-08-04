@@ -37,8 +37,8 @@ pub async fn get_server(listener: TcpListener, config: Config) -> Serve<Router, 
             },
         );
     let share_state = Arc::new(AppState {
-        task_pool: config.tasks_db.get_pool().await,
-        health_check_pool: config.health_db.get_pool().await,
+        task_pool: config.tasks.get_pool().await,
+        health_check_pool: config.health_check.get_pool().await,
         config,
     });
 
