@@ -8,12 +8,12 @@ struct Error {
     error: String,
 }
 #[tokio::test]
-async fn create_over_20mb_presigned_url() {
+async fn create_over_50mb_presigned_url() {
     let app = spawn().await;
     let client = reqwest::Client::new();
     let body = json!(SignUrlBody {
         id: 1,
-        executable_size: 20 * 1024 * 1024 + 1
+        executable_size: 50 * 1024 * 1024 + 1
     });
     let res = client
         .post(format!("{}/signurl/create", app.address))
@@ -47,7 +47,7 @@ async fn successfully_created_presigned_url() {
     let client = reqwest::Client::new();
     let body = json!(SignUrlBody {
         id: 1,
-        executable_size: 20 * 1024 * 1024
+        executable_size: 50 * 1024 * 1024
     });
     let res = client
         .post(format!("{}/signurl/create", app.address))

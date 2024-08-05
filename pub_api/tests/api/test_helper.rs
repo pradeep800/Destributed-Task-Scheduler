@@ -32,7 +32,6 @@ pub async fn migrate_and_get_db(database: &mut Database) -> PgPool {
             .expect("Failed to connect to Postgres");
 
     database.database_db += &uuid::Uuid::new_v4().to_string();
-    println!("{:?}", database);
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, database.database_db).as_str())
         .await

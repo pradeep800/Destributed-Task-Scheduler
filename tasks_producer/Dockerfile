@@ -1,5 +1,4 @@
 FROM clux/muslrust:stable AS chef
-USER root
 RUN cargo install cargo-chef
 WORKDIR /app
 
@@ -9,15 +8,13 @@ RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
-# Notice that we are specifying the --target flag!
 RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json
 COPY . .
 ENV SQLX_OFFLINE=true
 RUN cargo build --release --target x86_64-unknown-linux-musl --bin task_producer 
 
 FROM alpine AS runtime
-RUN addgroup -S myuser && adduser -S myuser -G myuser
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/task_producer /usr/local/bin/
-USER myuser
-CMD ["/usr/local/bin/task_producer"]
+WORKDIR /app
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/task_producer /app/task_producer
 
+CMD ["./task_producer"]

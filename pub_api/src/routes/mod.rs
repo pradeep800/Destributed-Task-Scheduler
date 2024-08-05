@@ -6,4 +6,7 @@ mod upload_status;
 pub use create_sign_url::*;
 pub use create_task::*;
 pub use task_status::*;
+
 pub use upload_status::*;
+pub mod check_status;
+pub use check_status::*;

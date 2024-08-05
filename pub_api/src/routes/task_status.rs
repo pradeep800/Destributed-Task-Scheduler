@@ -21,64 +21,61 @@ impl IntoResponse for AppError {
     }
 }
 
-#[derive(serde::Deserialize)]
-pub struct Id {
-    pub id: i32,
-}
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct TaskStatusResponse {
+pub struct GetAllTaskStatusResponse {
     pub id: i32,
     pub schedule_at: DateTime<Utc>,
     pub status: String,
     pub total_retry: i16,
-    pub currently_retrying_at: i16,
+    pub current_retry: i16,
     pub tracing_id: String,
 }
-pub async fn check_status(
+pub async fn get_all_task_status(
     State(state): State<Arc<AppState>>,
-    Json(body): Json<Id>,
 ) -> Result<impl IntoResponse, AppError> {
-    let current_task = sqlx::query!("Select * from tasks where id=$1", body.id)
-        .fetch_one(&state.db_pool)
+    let all_task = sqlx::query!("Select * from tasks order by id")
+        .fetch_all(&state.db_pool)
         .await
         .map_err(|e| AppError(anyhow::Error::new(e)))?;
-    if current_task.file_uploaded == false {
-        return Ok((
-            StatusCode::BAD_REQUEST,
-            Json(json!({"error":"please upload executable file"})),
-        ));
-    }
 
-    let status = get_status(&GetStatusParms {
-        successful_at: &current_task.successful_at,
-        picked_at_by_workers: &current_task.picked_at_by_workers,
-        failed_ats: &current_task.failed_ats,
-        total_retry: current_task.total_retry,
-        current_retry: current_task.current_retry,
-    });
-    Ok((
-        StatusCode::OK,
-        Json(json!(TaskStatusResponse {
+    let mut response: Vec<GetAllTaskStatusResponse> = Vec::new();
+    for current_task in all_task {
+        let status = get_status(&GetStatusParms {
+            successful_at: &current_task.successful_at,
+            picked_at_by_workers: &current_task.picked_at_by_workers,
+            failed_ats: &current_task.failed_ats,
+            total_retry: current_task.total_retry,
+            current_retry: current_task.current_retry,
+            file_uploaded: current_task.file_uploaded,
+        });
+
+        let task = GetAllTaskStatusResponse {
             id: current_task.id,
             schedule_at: current_task.schedule_at,
             status,
             total_retry: current_task.total_retry,
-            currently_retrying_at: current_task.current_retry,
+            current_retry: current_task.current_retry,
             tracing_id: current_task.tracing_id,
-        })),
-    ))
+        };
+        response.push(task);
+    }
+    Ok((StatusCode::OK, Json(json!(response))))
 }
-struct GetStatusParms<'a> {
-    successful_at: &'a Option<DateTime<Utc>>,
-    picked_at_by_workers: &'a Vec<DateTime<Utc>>,
-    failed_ats: &'a Vec<DateTime<Utc>>,
-    total_retry: i16,
-    current_retry: i16,
+pub struct GetStatusParms<'a> {
+    pub successful_at: &'a Option<DateTime<Utc>>,
+    pub picked_at_by_workers: &'a Vec<DateTime<Utc>>,
+    pub failed_ats: &'a Vec<DateTime<Utc>>,
+    pub total_retry: i16,
+    pub current_retry: i16,
+    pub file_uploaded: bool,
 }
-fn get_status(task: &GetStatusParms) -> String {
+pub fn get_status(task: &GetStatusParms) -> String {
     let mut status = "PROCESSING".to_string();
+    if !task.file_uploaded {
+        status = "FILE_NOT_UPLOADED".to_string();
+    }
     // if successful_at is added that mean our task got successfully finished
-    if !task.successful_at.is_none() {
+    else if !task.successful_at.is_none() {
         status = "SUCCESS".to_string();
     }
     // if it never got picked by any worker that mean is only got scheduled
@@ -107,6 +104,7 @@ mod test {
             failed_ats: &Vec::new(),
             current_retry: 0,
             total_retry: 3,
+            file_uploaded: true,
         });
         assert_eq!(status, "SUCCESS");
     }
@@ -128,6 +126,7 @@ mod test {
             failed_ats: &failed_at,
             current_retry: 3,
             total_retry: 3,
+            file_uploaded: true,
         });
         assert_eq!(status, "FAILED");
     }
@@ -139,6 +138,7 @@ mod test {
             picked_at_by_workers: &Vec::new(),
             failed_ats: &Vec::new(),
             current_retry: 0,
+            file_uploaded: true,
             total_retry: 3,
         });
         assert_eq!(status, "SCHEDULED");
@@ -158,8 +158,29 @@ mod test {
             picked_at_by_workers: &picked_at_worker,
             failed_ats: &failed_at,
             current_retry: 2,
+            file_uploaded: true,
             total_retry: 3,
         });
         assert_eq!(status, "PROCESSING");
+    }
+    #[test]
+    fn get_file_not_uploaded() {
+        let mut failed_at = Vec::new();
+        let mut picked_at_worker = Vec::new();
+        picked_at_worker.push(Utc::now());
+        picked_at_worker.push(Utc::now());
+        picked_at_worker.push(Utc::now());
+        failed_at.push(Utc::now());
+        failed_at.push(Utc::now());
+        failed_at.push(Utc::now());
+        let status = get_status(&GetStatusParms {
+            successful_at: &None,
+            picked_at_by_workers: &picked_at_worker,
+            failed_ats: &failed_at,
+            current_retry: 2,
+            file_uploaded: false,
+            total_retry: 3,
+        });
+        assert_eq!(status, "FILE_NOT_UPLOADED");
     }
 }

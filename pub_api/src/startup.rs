@@ -1,3 +1,8 @@
+use crate::{
+    routes::{check_status, create_sign_url, create_task, get_all_task_status, upload_status},
+    state::AppState,
+};
+use axum::http::Method;
 use axum::{
     extract::Request,
     routing::{get, post},
@@ -6,14 +11,9 @@ use axum::{
 };
 use std::{sync::Arc, time::Duration};
 use tokio::net::TcpListener;
+use tower_http::cors::{AllowHeaders, Any, CorsLayer};
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{error, info_span, Span};
-
-use crate::{
-    routes::{check_status, create_sign_url, create_task, upload_status},
-    state::AppState,
-};
-
 pub async fn get_server(
     listener: TcpListener,
     config: crate::configuration::Config,
@@ -37,13 +37,18 @@ pub async fn get_server(
         db_pool: config.database.get_pool().await,
         config: Arc::new(config),
     });
-
+    let cors = CorsLayer::new()
+        .allow_methods(vec![Method::GET, Method::POST])
+        .allow_origin(Any)
+        .allow_headers(Any);
     let router = Router::new()
         .route("/health-check", get(health_check))
         .route("/task/create", post(create_task))
-        .route("/task/status", post(check_status))
+        .route("/task/all/status", get(get_all_task_status))
         .route("/signurl/create", post(create_sign_url))
         .route("/file/status", post(upload_status))
+        .route("/task/status", post(check_status))
+        .layer(cors)
         .layer(tracing_layer)
         .with_state(share_state);
 

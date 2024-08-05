@@ -1,6 +1,7 @@
 use crate::state::AppState;
 use anyhow::Result;
 use aws_sdk_s3::presigning::PresigningConfig;
+use aws_sdk_s3::types::ObjectCannedAcl;
 use axum::Json;
 use axum::{extract::State, response::IntoResponse};
 use reqwest::StatusCode;
@@ -23,7 +24,7 @@ pub async fn create_sign_url(
     State(app_state): State<Arc<AppState>>,
     Json(body): Json<SignUrlBody>,
 ) -> Result<impl IntoResponse, AppError> {
-    let twenty_five_mb = 20 * 1024 * 1024;
+    let twenty_five_mb = 50 * 1024 * 1024;
     if twenty_five_mb < body.executable_size {
         return Ok((
             StatusCode::BAD_REQUEST,
@@ -43,6 +44,7 @@ pub async fn create_sign_url(
     let config = Arc::clone(&app_state.config);
     let presigned_url = client
         .put_object()
+        .acl(ObjectCannedAcl::Private)
         .bucket(&config.s3.bucket)
         .key(body.id.to_string())
         .content_type("application/x-executable")
