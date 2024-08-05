@@ -3,7 +3,6 @@ use axum::{
     response::IntoResponse,
 };
 use health_checks::HealthCheckDb;
-use sqlx::Acquire;
 use std::sync::Arc;
 use tasks::TasksDb;
 

@@ -11,7 +11,6 @@ chrono = {workspace=true}
 once_cell ={workspace=true}
 reqwest = {workspace=true}
 serde ={workspace=true} 
-serde-aux = {workspace=true}
 serde_json = {workspace=true}
 sqlx = {workspace=true}
 config = {workspace=true}
@@ -23,7 +22,5 @@ tracing-bunyan-formatter =  {workspace=true}
 tracing-subscriber ={workspace=true}
 uuid = { workspace=true}
 common={path="../common"}
-aws-config ={workspace=true} 
 aws-sdk-s3={workspace=true}
 axum.workspace = true
-openssl = {workspace=true} 

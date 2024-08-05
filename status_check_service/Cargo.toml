@@ -9,7 +9,6 @@ chrono = {workspace=true}
 once_cell ={workspace=true}
 reqwest = {workspace=true}
 serde ={workspace=true} 
-serde-aux = {workspace=true}
 serde_json = {workspace=true}
 sqlx = {workspace=true}
 config = {workspace=true}
@@ -24,6 +23,3 @@ common={path="../common"}
 tasks={path="../db/tasks"}
 health_checks={path="../db/health_checks"}
 axum.workspace = true
-
-openssl = {workspace=true} 
-async-trait = "0.1.81"

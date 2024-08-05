@@ -1,0 +1,2 @@
+ignore-tests = true
+exclude-file-name-regex = "web/.*"
