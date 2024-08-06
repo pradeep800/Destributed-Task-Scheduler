@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tasks SET picked_at_by_workers = picked_at_by_workers || $1::timestamptz[] WHERE id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TimestamptzArray",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4690c7c18d052055507c0476148182415d9fb27d9d6e677401172893b1e05913"
+}
