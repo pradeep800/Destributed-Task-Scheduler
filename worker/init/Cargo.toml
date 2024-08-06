@@ -1,0 +1,21 @@
+[package]
+name = "init"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono = {workspace=true}
+once_cell ={workspace=true}
+serde ={workspace=true} 
+sqlx = {workspace=true}
+config = {workspace=true}
+tokio ={workspace=true}
+tracing = {workspace=true}
+tracing-bunyan-formatter =  {workspace=true}
+tracing-subscriber ={workspace=true}
+uuid = { workspace=true}
+aws-sdk-s3={ workspace=true}
+common = { version = "0.1.0", path = "../../common" }
+tasks = { version = "0.1.0", path = "../../db/tasks" }
+aws-sdk-sqs = { workspace=true}
+serde_json.workspace = true

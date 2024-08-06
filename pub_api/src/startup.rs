@@ -11,7 +11,7 @@ use axum::{
 };
 use std::{sync::Arc, time::Duration};
 use tokio::net::TcpListener;
-use tower_http::cors::{AllowHeaders, Any, CorsLayer};
+use tower_http::cors::{Any, CorsLayer};
 use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
 use tracing::{error, info_span, Span};
 pub async fn get_server(

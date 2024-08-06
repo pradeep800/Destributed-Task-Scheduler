@@ -7,7 +7,8 @@ const TimeAndDayPicker = () => {
   const [file, setFile] = useState<File | null>(null);
 
   const [retry, setRetry] = useState<number | undefined>();
-
+  const [isLoading, setIsLoading] = useState(false);
+  const [change, setChange] = useState(0);
   const handleDateChange = (date: Date | null) => {
     if (date) {
       setSelectedDate(date);
@@ -16,7 +17,7 @@ const TimeAndDayPicker = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
+    setIsLoading(true);
     if (selectedDate && file) {
 
       const formattedDate = format(selectedDate, "yyyy-MM-dd HH:mm:ss");
@@ -65,15 +66,19 @@ const TimeAndDayPicker = () => {
         await fetch(s3.presigned_url, {
           method: "PUT",
           body: file,
+          headers: {
+            "Content-Type": "application/x-executable",
+          }
         }).then(async res => {
 
           if (res.status != 200) {
-            let json = await res.json();
-            throw new Error(JSON.stringify(json));
+            let text = await res.text();
+            console.log(text);
+            throw new Error("s3 error");
           }
 
         });
-        let status = await fetch("http:://localhost:3000/file/status", {
+        let status = await fetch("http://localhost:3000/file/status", {
           method: "POST",
           body: JSON.stringify({ id: task_info.id }),
           headers: {
@@ -90,14 +95,16 @@ const TimeAndDayPicker = () => {
           throw new Error("File is not uploaded yet");
         }
         (document.getElementById('create-task-form') as HTMLFormElement)?.reset();
+        setChange(change => change + 1);
         alert("Successfully submitted");
 
       } catch (err) {
-        console.log(err);
+        console.log("error", err);
         alert("Server Errorr");
       }
 
     }
+    setIsLoading(false);
   };
 
   const weekend = (date: Date) => {
@@ -168,16 +175,24 @@ const TimeAndDayPicker = () => {
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        <button
-          type="submit"
-          className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-        >
-          Create Task
-        </button>
+        {!isLoading ?
+          <button
+            type="submit"
+            className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Create Task
+          </button> : <Spinner />}
       </form>
-      <TaskStatusTable />
+      <TaskStatusTable change={change} />
     </div>
   );
 };
-
+export const Spinner = () => (
+  <div className="flex justify-center items-center">
+    <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+  </div>
+);
 export default TimeAndDayPicker;

@@ -3,7 +3,7 @@ resolver="2"
 members = [ 
     "common", "db/health_checks", "db/tasks",
     "pub_api", "health_check_remover", "retry_and_failed_updater_service", "status_check_service", 
-    "tasks_producer", "worker/main",
+    "tasks_producer", "worker/main", "worker/init",
 ]
 [workspace.dependencies]
 serde = "1.0.204"

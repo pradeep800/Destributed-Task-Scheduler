@@ -8,5 +8,6 @@ sqlx = {workspace=true}
 config = {workspace=true}
 tokio ={workspace=true}
 uuid = { workspace=true}
-common={path="../common"}
+common={ path = "../common" }
 health_checks = { version = "0.1.0", path = "../db/health_checks" }
+once_cell ={workspace=true}

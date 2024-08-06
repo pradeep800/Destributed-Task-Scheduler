@@ -37,7 +37,7 @@ async fn successful_upload_status() {
 }
 */
 #[tokio::test]
-async fn pending_task_file_upload() {
+async fn pending_upload() {
     let app = spawn().await;
     let new_task = Task {
         id: 1,

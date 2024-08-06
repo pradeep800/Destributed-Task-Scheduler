@@ -1,8 +1,6 @@
+use common::tracing::{get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
-use retry_and_failed_updater_service::{
-    configuration::{get_configuration, Config},
-    tracing::{get_subscriber, init_subscriber},
-};
+use retry_and_failed_updater_service::configuration::{get_configuration, Config};
 use sqlx::{Connection, Executor, PgConnection};
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();

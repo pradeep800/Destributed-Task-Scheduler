@@ -1,8 +1,5 @@
-use retry_and_failed_updater_service::{
-    configuration::get_configuration,
-    process::process,
-    tracing::{get_subscriber, init_subscriber},
-};
+use common::tracing::{get_subscriber, init_subscriber};
+use retry_and_failed_updater_service::{configuration::get_configuration, process::process};
 
 #[tokio::main]
 async fn main() {

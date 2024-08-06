@@ -1,10 +1,10 @@
 use chrono::{Duration, Utc};
+use common::tracing::{get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection};
 use status_check_service::{
     configurations::{get_configuration, Config},
     startup::get_server,
-    tracing::{get_subscriber, init_subscriber},
 };
 use std::future::IntoFuture;
 use tasks::Task;

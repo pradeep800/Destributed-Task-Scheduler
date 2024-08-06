@@ -1,9 +1,6 @@
-use task_producer::{
-    configuration::get_configuration,
-    producer::producer,
-    tracing::{get_subscriber, init_subscriber},
-};
+use task_producer::{configuration::get_configuration, producer::producer};
 
+use common::tracing::{get_subscriber, init_subscriber};
 #[tokio::main]
 async fn main() {
     let subscriber = get_subscriber(

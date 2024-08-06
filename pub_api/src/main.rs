@@ -1,8 +1,5 @@
-use pub_api::{
-    configuration::get_configuration,
-    startup::get_server,
-    tracing::{get_subscriber, init_subscriber},
-};
+use common::tracing::{get_subscriber, init_subscriber};
+use pub_api::{configuration::get_configuration, startup::get_server};
 
 #[tokio::main]
 async fn main() {
@@ -13,6 +10,7 @@ async fn main() {
     );
     let config = get_configuration();
     init_subscriber(subscriber);
+
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000")
         .await
         .unwrap();

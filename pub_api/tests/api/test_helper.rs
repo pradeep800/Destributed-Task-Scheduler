@@ -1,14 +1,10 @@
-use std::future::IntoFuture;
-
 use chrono::Utc;
 use common::database::Database;
+use common::tracing::{get_subscriber, init_subscriber};
 use once_cell::sync::Lazy;
-use pub_api::{
-    configuration::get_configuration,
-    startup::get_server,
-    tracing::{get_subscriber, init_subscriber},
-};
+use pub_api::{configuration::get_configuration, startup::get_server};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
+use std::future::IntoFuture;
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "info".to_string();
     let subscriber_name = "test".to_string();

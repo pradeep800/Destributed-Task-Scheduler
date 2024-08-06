@@ -28,6 +28,17 @@ impl<'a> TasksDb<'a> {
             .fetch_one(self.pool)
             .await
     }
+    pub async fn update_picked_at_by_workers(&self, task_id: i32) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+        "UPDATE tasks SET picked_at_by_workers = picked_at_by_workers || $1::timestamptz[] WHERE id = $2",
+        &[Utc::now()],
+        task_id,
+    )
+    .execute(self.pool)
+    .await?;
+
+        Ok(())
+    }
     pub async fn create_task(&self, task: &Task) -> Result<Task, sqlx::Error> {
         let task = sqlx::query_as!(
             Task,

@@ -1,5 +1,6 @@
-use common::database::Database;
+use common::{database::Database, tracing::TRACING};
 use health_check_remover::configuration::get_configuration;
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection};
 #[derive(Debug)]
 pub struct AppInfo {
@@ -23,6 +24,7 @@ pub async fn migrate_and_get_db(database: &mut Database) {
         .expect("Failed to migrate the database");
 }
 pub async fn spawn() -> AppInfo {
+    Lazy::force(&TRACING);
     let mut database = get_configuration();
     migrate_and_get_db(&mut database).await;
     return AppInfo { database };
