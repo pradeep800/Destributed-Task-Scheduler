@@ -72,7 +72,7 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build . -t pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }} -f ./${{ env.file_name }}/Dockerfile
+          docker build . -t pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }} -f ./services/${{ env.file_name }}/Dockerfile
           docker tag pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }} pradeep800/${{ env.file_name }}:latest
       
       - name: Publish Docker image

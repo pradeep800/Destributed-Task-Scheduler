@@ -1,0 +1,17 @@
+[package]
+name = "retry_and_failed_updater"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+once_cell ={workspace=true}
+serde ={workspace=true} 
+sqlx = {workspace=true}
+config = {workspace=true}
+tokio ={workspace=true}
+tracing = {workspace=true}
+uuid = { workspace=true}
+common={path="../../crates/common"}
+tasks = { version = "0.1.0", path = "../../crates/db/tasks" }
+health_checks = { version = "0.1.0", path = "../../crates/db/health_checks" }
+

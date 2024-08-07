@@ -2304,7 +2304,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "retry_and_failed_updater_service"
+name = "retry_and_failed_updater"
 version = "0.1.0"
 dependencies = [
  "common",
@@ -2993,7 +2993,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "status_check_service"
+name = "status_check"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -3088,7 +3088,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "task_producer"
+name = "tasks"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "sqlx",
+ "uuid",
+]
+
+[[package]]
+name = "tasks_producer"
 version = "0.1.0"
 dependencies = [
  "aws-sdk-sqs",
@@ -3101,16 +3111,6 @@ dependencies = [
  "tasks",
  "tokio",
  "tracing",
- "uuid",
-]
-
-[[package]]
-name = "tasks"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "serde",
- "sqlx",
  "uuid",
 ]
 

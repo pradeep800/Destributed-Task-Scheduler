@@ -1,0 +1,14 @@
+[package]
+name = "health_check_remover"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sqlx = {workspace=true}
+config = {workspace=true}
+tokio ={workspace=true}
+uuid = { workspace=true}
+once_cell ={workspace=true}
+common = { version = "0.1.0", path = "../../crates/common" }
+health_checks = { version = "0.1.0", path = "../../crates/db/health_checks" }
+
