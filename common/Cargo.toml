@@ -16,5 +16,5 @@ jsonwebtoken = "9.3.0"
 chrono.workspace = true
 tracing = "0.1.40"
 tracing-bunyan-formatter = "0.3.9"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter","json"] }
 

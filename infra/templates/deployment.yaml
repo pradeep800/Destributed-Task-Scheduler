@@ -1,8 +1,8 @@
-
+{{- if .Values.deployment.enable }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.app}}-depolyment
+  name: {{ .Values.deployment.metadata.name }}
 spec:
   replicas: {{ .Values.deployment.replicas }}
   selector:
@@ -16,6 +16,10 @@ spec:
       containers:
       - name: {{ .Values.app }}
         image: {{ .Values.containers.image }}
+        {{- if .Values.containers.containerPort }}
         ports:
         - containerPort: {{ .Values.containers.containerPort }}
-
+        {{- end }}  
+        env:
+{{ include "helpers.list-env-variables" . | indent 10 }}
+{{- end }}  

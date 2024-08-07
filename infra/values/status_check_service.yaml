@@ -1,0 +1,21 @@
+app: status_check_service 
+deployment:
+  enable: true
+  replicas: 2
+  metadata:
+    name: status_check_service_deployment 
+service:
+  enable: true
+  port: 80
+  targetPort: 4000 
+  type: ClusterIP 
+containers:
+    image: pradeep8b0/status_check_service
+    containerPort: 4000 
+secrets:
+  - tasks-secrets
+  - health-check-secrets 
+  - jwt-secrets
+# no cron job
+cron_job:
+  enable: false 

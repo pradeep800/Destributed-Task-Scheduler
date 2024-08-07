@@ -1545,19 +1545,13 @@ version = "0.1.0"
 dependencies = [
  "aws-sdk-s3",
  "aws-sdk-sqs",
- "chrono",
  "common",
  "config",
- "once_cell",
  "serde",
  "serde_json",
- "sqlx",
  "tasks",
  "tokio",
  "tracing",
- "tracing-bunyan-formatter",
- "tracing-subscriber",
- "uuid",
 ]
 
 [[package]]
@@ -2156,8 +2150,6 @@ dependencies = [
  "tokio",
  "tower-http",
  "tracing",
- "tracing-bunyan-formatter",
- "tracing-subscriber",
  "uuid",
 ]
 
@@ -2324,8 +2316,6 @@ dependencies = [
  "tasks",
  "tokio",
  "tracing",
- "tracing-bunyan-formatter",
- "tracing-subscriber",
  "uuid",
 ]
 
@@ -3022,8 +3012,6 @@ dependencies = [
  "tokio",
  "tower-http",
  "tracing",
- "tracing-bunyan-formatter",
- "tracing-subscriber",
  "uuid",
 ]
 
@@ -3113,8 +3101,6 @@ dependencies = [
  "tasks",
  "tokio",
  "tracing",
- "tracing-bunyan-formatter",
- "tracing-subscriber",
  "uuid",
 ]
 
@@ -3463,6 +3449,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing-serde"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc6b213177105856957181934e4920de57730fc69bf42c37ee5bb664d406d9e1"
+dependencies = [
+ "serde",
+ "tracing-core",
+]
+
+[[package]]
 name = "tracing-subscriber"
 version = "0.3.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3472,12 +3468,15 @@ dependencies = [
  "nu-ansi-term",
  "once_cell",
  "regex",
+ "serde",
+ "serde_json",
  "sharded-slab",
  "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
  "tracing-log 0.2.0",
+ "tracing-serde",
 ]
 
 [[package]]

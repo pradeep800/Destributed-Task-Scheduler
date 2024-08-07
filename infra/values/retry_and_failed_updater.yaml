@@ -1,0 +1,15 @@
+app: retry_and_failed_updater_service 
+deployment:
+  replicas: 2 
+  metadata:
+    name: retry_and_failed_updater_service-deployment 
+service:
+  enable: false 
+containers:
+    image: pradeep8b0/retry_and_failed_updater_service:latest
+secrets:
+  - tasks-secrets
+  - health-check-secrets 
+# no cron job
+cron_job:
+  enable: false 

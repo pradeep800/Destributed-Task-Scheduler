@@ -1,11 +1,14 @@
+{{- if .Values.service.enable }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.app }}-svc
 spec:
-  type: {{.Values.service.type}} 
+  type: {{ .Values.service.type }}
   selector:
-    app: {{.Values.app}} 
+    app: {{ .Values.app }}
   ports:
-    - port: {{.Values.service.port}}
-      targetPort: {{.Values.service.targetPort}} 
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+{{- end }}
+

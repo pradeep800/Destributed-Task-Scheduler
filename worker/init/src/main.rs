@@ -1,20 +1,18 @@
-use aws_sdk_s3::{
-    error::SdkError,
-    operation::copy_object::{CopyObjectError, CopyObjectOutput},
-    Client as S3Client,
-};
+use aws_sdk_s3::Client as S3Client;
 use aws_sdk_sqs::Client as SQSClient;
 use common::jwt::Jwt;
-use init::configuration::get_configuration;
-
 use common::tracing::{get_subscriber, init_subscriber};
+use init::configuration::get_configuration;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::Write;
+use tokio::io::AsyncWriteExt;
+
+use std::path::Path;
+use tokio::fs::File;
+
 use std::time::Duration;
 use tasks::TasksDb;
 use tokio::time::sleep;
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 struct MessageData {
     pub task_id: i32,
     pub tracing_id: String,
@@ -56,20 +54,27 @@ async fn main() {
     }
     let message = message.unwrap();
     let receipt_handle = receipt_handle.unwrap();
-    copy_object(&s3_client, &config.s3.bucket, &message.task_id.to_string())
-        .await
-        .unwrap();
+    println!("{:?}:{:?}", message, receipt_handle);
+    let share_vol = format!("/shared/{}", message.task_id);
+    download_file_and_put_volume(
+        &s3_client,
+        &config.s3.bucket,
+        &message.task_id.to_string(),
+        share_vol.as_str(),
+    )
+    .await
+    .unwrap();
 
-    let mut f = File::create_new("/shared/foo.txt").unwrap();
-    let jwt_client = Jwt::new(config.jwt_secret);
+    let mut f = File::create_new("/shared/jwt.txt").await.unwrap();
+
     let hostname = std::env::var("HOST_NAME").unwrap();
+    let jwt_client = Jwt::new(config.jwt_secret);
     let jwt = jwt_client
         .encode(&message.tracing_id, message.task_id, &hostname)
         .unwrap()
         + "\n";
-
-    f.write(jwt.as_bytes()).unwrap();
-    f.write(message.tracing_id.as_bytes()).unwrap();
+    let _ = f.write_all(jwt.as_bytes()).await;
+    let _ = f.write_all(message.tracing_id.as_bytes()).await;
     drop(f);
     tasks_db
         .update_picked_at_by_workers(message.task_id)
@@ -84,23 +89,25 @@ async fn main() {
         .unwrap();
 }
 
-pub async fn copy_object(
+pub async fn download_file_and_put_volume(
     client: &S3Client,
     bucket_name: &str,
     object_key: &str,
-) -> Result<CopyObjectOutput, SdkError<CopyObjectError>> {
-    let mut source_bucket_and_object: String = "".to_owned();
-    source_bucket_and_object.push_str(bucket_name);
-    source_bucket_and_object.push('/');
-    source_bucket_and_object.push_str(object_key);
-
-    client
-        .copy_object()
-        .copy_source(source_bucket_and_object)
+    local_file_path: &str,
+) -> Result<(), aws_sdk_s3::Error> {
+    let get_object_output = client
+        .get_object()
         .bucket(bucket_name)
-        .key("/shared/")
+        .key(object_key)
         .send()
-        .await
+        .await?;
+    let mut file = File::create(Path::new(local_file_path)).await.unwrap();
+
+    let stream = get_object_output.body;
+    let data = stream.collect().await.unwrap();
+    let _ = file.write_all(&data.into_bytes()).await;
+
+    Ok(())
 }
 struct ReceiveReturn {
     receipt_handle: Option<String>,

@@ -1,0 +1,12 @@
+app: health_check_remover 
+deployment:
+  enable: false 
+service:
+  enable: false 
+containers:
+    image: pradeep8b0/health_check_remover:latest
+secrets:
+  - health-check-secrets 
+# no cron job
+cron_job:
+  enable: true 
