@@ -13,12 +13,12 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json
 COPY . .
 ENV SQLX_OFFLINE=true
-RUN cargo build --release --target x86_64-unknown-linux-musl --bin status_check_service 
+RUN cargo build --release --target x86_64-unknown-linux-musl --bin status_check
 
 FROM alpine AS runtime
 RUN addgroup -S myuser && adduser -S myuser -G myuser
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/status_check_service /usr/local/bin/
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/status_check /usr/local/bin/
 USER myuser
-CMD ["/usr/local/bin/status_check_service"]
+CMD ["/usr/local/bin/status_check"]
 
 
