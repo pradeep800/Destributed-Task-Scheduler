@@ -1252,6 +1252,7 @@ dependencies = [
  "config",
  "health_checks",
  "once_cell",
+ "serde",
  "sqlx",
  "tokio",
  "uuid",

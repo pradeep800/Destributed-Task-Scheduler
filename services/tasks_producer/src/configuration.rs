@@ -3,7 +3,7 @@ use common::{database::Database, sqs::SQS};
 use std::path::PathBuf;
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Config {
-    pub database: Database,
+    pub tasks: Database,
     pub sqs: SQS,
 }
 

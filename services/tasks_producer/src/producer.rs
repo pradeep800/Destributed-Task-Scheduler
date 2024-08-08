@@ -5,7 +5,7 @@ use tokio::time::{sleep, Duration};
 use tracing::{error, info, trace_span};
 
 pub async fn producer(config: &Config) {
-    let pool = config.database.get_pool().await;
+    let pool = config.tasks.get_pool().await;
     let mut sqs_retry = 0;
     let span = trace_span!("trace_span");
     let _ = span.enter();

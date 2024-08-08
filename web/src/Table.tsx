@@ -17,7 +17,7 @@ const TaskStatusTable = ({ change }: { change: number }) => {
   let [tasks, setTasks] = useState<Task[]>([]);
   let [isLoading, setIsLoading] = useState(false);
   useEffect(() => {
-    fetch("http://localhost:3000/task/all/status").then(async res => {
+    fetch(URL + "task/all/status").then(async res => {
       let data = await res.json() as Task[];
       setTasks(data);
     })
@@ -36,7 +36,7 @@ const TaskStatusTable = ({ change }: { change: number }) => {
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-3 rounded text-xs"
           onClick={() => {
             setIsLoading(true)
-            fetch("http://localhost:3000/task/all/status").then(async res => {
+            fetch(URL + "task/all/status").then(async res => {
               let data = await res.json() as Task[];
               setTasks(data);
             }).catch(err => {
@@ -77,7 +77,7 @@ const TaskStatusTable = ({ change }: { change: number }) => {
                   onClick={() => {
                     //we know that we can't delete anything so we can use index
 
-                    fetch("http://localhost:3000/task/status", {
+                    fetch(URL + "task/status", {
                       method: "POST",
                       body: JSON.stringify({ id: task.id }),
                       headers: {

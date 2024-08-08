@@ -7,7 +7,7 @@ pub struct Config {
     #[serde(alias = "S3")]
     pub s3: S3,
     #[serde(alias = "DATABASE")]
-    pub database: Database,
+    pub tasks: Database,
 }
 
 pub fn get_configuration() -> Config {

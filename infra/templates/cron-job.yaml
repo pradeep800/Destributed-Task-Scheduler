@@ -2,7 +2,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: every-10-minutes
+  name: {{.Values.app}}
 spec:
   schedule: "*/10 * * * *" 
   jobTemplate:
@@ -10,7 +10,7 @@ spec:
       template:
         spec:
           containers:
-          - name: {{.Values.app}} 
+          - name: {{.Values.app}}
             image: {{.Values.cron_job.image}} 
           restartPolicy: OnFailure
 {{-  end }}

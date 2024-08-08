@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: database-migrations
+spec:
+  containers:
+  - name: database-migrations
+    image: pradeep800/migrate:latest
+  restartPolicy: Never
+

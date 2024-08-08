@@ -1,7 +1,7 @@
 import { FormEvent, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css'; import { format } from 'date-fns'; import TaskStatusTable from './Table';
-
+export const URL = "http://localhost:9999/"
 const TimeAndDayPicker = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [file, setFile] = useState<File | null>(null);
@@ -29,7 +29,7 @@ const TimeAndDayPicker = () => {
         retry: retry
       }
       try {
-        let task_info = await fetch("http://localhost:3000/task/create", {
+        let task_info = await fetch(URL + "task/create", {
           body: JSON.stringify(created_task_body),
           method: "POST",
           headers: {
@@ -48,7 +48,7 @@ const TimeAndDayPicker = () => {
           id: task_info.id,
           executable_size: file.size
         }
-        let s3 = await fetch("http://localhost:3000/signurl/create", {
+        let s3 = await fetch(URL + "signurl/create", {
           body: JSON.stringify(s3body),
           method: "POST",
           headers: {
@@ -78,7 +78,7 @@ const TimeAndDayPicker = () => {
           }
 
         });
-        let status = await fetch("http://localhost:3000/file/status", {
+        let status = await fetch(URL + "file/status", {
           method: "POST",
           body: JSON.stringify({ id: task_info.id }),
           headers: {

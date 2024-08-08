@@ -9,7 +9,7 @@ async fn testing_producer() {
     let config = spawn().await;
     let task_producer = producer(&config);
     let ten_second_sleep = sleep(Duration::from_secs(10));
-    let pool = config.database.get_pool().await;
+    let pool = config.tasks.get_pool().await;
     let task_db = TasksDb::new(&pool);
     let genrated_task = TaskFaker::generate_random_processing_task();
     for _i in 0..22 {

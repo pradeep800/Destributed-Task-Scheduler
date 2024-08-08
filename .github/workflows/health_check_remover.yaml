@@ -53,11 +53,11 @@ jobs:
       - name: Run tests
         run: TEST_LOG=true cargo test -p ${{env.file_name}}  
         env:
-          APP__DATABASE_USER: ${{ secrets.APP__HEALTH_CHECK__DATABASE_USER }}
-          APP__DATABASE_DB: ${{ secrets.APP__HEALTH_CHECK__DATABASE_DB }}
-          APP__DATABASE_PASSWORD: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PASSWORD }}
-          APP__DATABASE_PORT: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PORT }}
-          APP__DATABASE_HOST: ${{ secrets.APP__HEALTH_CHECK__DATABASE_HOST }}
+          APP__HEALTH_CHECK__DATABASE_USER: ${{ secrets.APP__HEALTH_CHECK__DATABASE_USER }}
+          APP__HEALTH_CHECK__DATABASE_DB: ${{ secrets.APP__HEALTH_CHECK__DATABASE_DB }}
+          APP__HEALTH_CHECK__DATABASE_PASSWORD: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PASSWORD }}
+          APP__HEALTH_CHECK__DATABASE_PORT: ${{ secrets.APP__HEALTH_CHECK__DATABASE_PORT }}
+          APP__HEALTH_CHECK__DATABASE_HOST: ${{ secrets.APP__HEALTH_CHECK__DATABASE_HOST }}
   publish_image:
     name: Publish Docker Image
     runs-on: ubuntu-latest

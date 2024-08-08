@@ -2,8 +2,6 @@ app: pub-api
 deployment:
   enable: true
   replicas: 2
-  metadata:
-    name: pub_api_deployment
 service:
   enable: true
   port: 80
@@ -18,3 +16,7 @@ secrets:
 # no cron job
 cron_job:
   enable: false 
+postgres_statefulset:
+  enable: false
+volume:
+  enable: false

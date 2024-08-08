@@ -25,7 +25,7 @@ pub async fn migrate_and_get_db(database: &mut Database) {
 }
 pub async fn spawn() -> AppInfo {
     Lazy::force(&TRACING);
-    let mut database = get_configuration();
+    let mut database = get_configuration().health_check;
     migrate_and_get_db(&mut database).await;
     return AppInfo { database };
 }

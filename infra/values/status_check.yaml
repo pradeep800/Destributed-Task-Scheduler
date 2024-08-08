@@ -2,15 +2,13 @@ app: status_check
 deployment:
   enable: true
   replicas: 2
-  metadata:
-    name: status_check-deployment 
 service:
   enable: true
   port: 80
   targetPort: 4000 
   type: ClusterIP 
 containers:
-    image: pradeep8b0/status_check
+    image: pradeep800/status_check
     containerPort: 4000 
 secrets:
   - tasks-secrets

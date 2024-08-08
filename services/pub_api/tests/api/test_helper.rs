@@ -45,7 +45,7 @@ pub async fn migrate_and_get_db(database: &mut Database) -> PgPool {
 pub async fn spawn() -> AppInfo {
     Lazy::force(&TRACING);
     let mut config = get_configuration();
-    let db_pool = migrate_and_get_db(&mut config.database).await;
+    let db_pool = migrate_and_get_db(&mut config.tasks).await;
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://localhost:{}", port);

@@ -34,7 +34,7 @@ pub async fn get_server(
             },
         );
     let share_state = Arc::new(AppState {
-        db_pool: config.database.get_pool().await,
+        db_pool: config.tasks.get_pool().await,
         config: Arc::new(config),
     });
     let cors = CorsLayer::new()

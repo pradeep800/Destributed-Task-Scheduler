@@ -1,8 +1,12 @@
 use std::path::PathBuf;
 
 use common::database::Database;
-
-pub fn get_configuration() -> Database {
+use serde::{Deserialize, Serialize};
+#[derive(Serialize, Deserialize)]
+pub struct Config {
+    pub health_check: Database,
+}
+pub fn get_configuration() -> Config {
     let base_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let configuration_path = base_path.join("env.yaml");
 
@@ -23,6 +27,6 @@ pub fn get_configuration() -> Database {
         .expect("Failed to build configuration");
 
     settings
-        .try_deserialize::<Database>()
+        .try_deserialize::<Config>()
         .expect("Failed to deserialize configuration")
 }

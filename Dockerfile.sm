@@ -1,0 +1,12 @@
+FROM rust:1.80
+WORKDIR /app
+
+COPY crates ./crates/
+COPY scripts ./scripts/
+
+
+RUN cargo install sqlx-cli --no-default-features --features postgres
+
+RUN chmod +x ./scripts/migrate_prod.sh
+
+CMD ["./scripts/migrate_prod.sh"]

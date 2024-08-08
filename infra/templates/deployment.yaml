@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.deployment.metadata.name }}
+  name: {{ .Values.app}}-deployment
 spec:
   replicas: {{ .Values.deployment.replicas }}
   selector:
@@ -20,6 +20,5 @@ spec:
         ports:
         - containerPort: {{ .Values.containers.containerPort }}
         {{- end }}  
-        env:
-{{ include "helpers.list-env-variables" . | indent 10 }}
+{{ include "helpers.list-env-variables" . | indent 8 }}
 {{- end }}  

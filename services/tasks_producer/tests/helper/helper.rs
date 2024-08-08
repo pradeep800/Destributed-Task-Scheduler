@@ -26,6 +26,6 @@ async fn migrate_and_get_db(database: &mut Database) -> PgPool {
 }
 pub async fn spawn() -> Config {
     let mut configuration = get_configuration();
-    let _ = migrate_and_get_db(&mut configuration.database).await;
+    let _ = migrate_and_get_db(&mut configuration.tasks).await;
     configuration
 }

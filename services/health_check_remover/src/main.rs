@@ -9,7 +9,7 @@ async fn main() {
     );
     init_subscriber(subscriber);
     let config = get_configuration();
-    let pool = config.get_pool().await;
+    let pool = config.health_check.get_pool().await;
 
     process(&pool).await;
 }

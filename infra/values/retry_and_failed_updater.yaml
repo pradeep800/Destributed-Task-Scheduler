@@ -1,13 +1,11 @@
-app: retry_and_failed_updater
+app: retry-and-failed-updater
 deployment:
   enable: true
   replicas: 2 
-  metadata:
-    name: retry_and_failed_updater-deployment 
 service:
   enable: false 
 containers:
-    image: pradeep8b0/retry_and_failed_updater:latest
+    image: pradeep800/retry_and_failed_updater:latest
 secrets:
   - tasks-secrets
   - health-check-secrets 

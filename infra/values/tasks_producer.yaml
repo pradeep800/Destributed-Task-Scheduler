@@ -2,12 +2,10 @@ app: tasks_producer
 deployment:
   enable: true
   replicas: 2
-  metadata:
-    name: tasks_producer_deployment 
 service:
   enable: false 
 containers:
-    image: pradeep8b0/tasks_producer:latest
+    image: pradeep800/tasks_producer:latest
 secrets:
   - tasks-secrets
   - sqs-secrets 
