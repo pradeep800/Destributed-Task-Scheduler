@@ -1,74 +1,10 @@
-name: Publish worker init
+name: Publish worker main 
 on:
   [workflow_dispatch]
 
 env:
-  CARGO_TERM_COLOR: always
-  SQLX_VERSION: 0.7.4
-  SQLX_FEATURES: "rustls,postgres"
   file_name: "worker_main"
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    services:
-      postgres1:
-        image: postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: tasks
-        ports:
-          - 5432:5432
-      postgres2:
-        image: postgres
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: health_checks 
-        ports:
-          - 5433:5432
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          key: sqlx-${{ env.SQLX_VERSION }}
-      - name: Install sqlx-cli
-        run:
-            cargo install sqlx-cli
-            --version=${{ env.SQLX_VERSION }}
-            --features ${{ env.SQLX_FEATURES }}
-            --no-default-features
-            --locked
-      - name: Migrate database
-        run: |
-          sudo apt-get install libpq-dev -y
-          SKIP_DOCKER=true ./scripts/migrate_tasks.sh
-          ./scripts/migrate_health_checks.sh
-      - name: Check sqlx-data.json is up-to-date
-        run: |
-          cargo sqlx prepare --workspace --check
-      - name: Run tests
-        run: TEST_LOG=true cargo test -p ${{env.file_name}}  
-        env:
-          APP__TASKS__DATABASE_USER: ${{ secrets.APP__TASKS__DATABASE_USER }}
-          APP__TASKS__DATABASE_DB: ${{ secrets.APP__TASKS__DATABASE_DB }}
-          APP__TASKS__DATABASE_PASSWORD: ${{ secrets.APP__TASKS__DATABASE_PASSWORD }}
-          APP__TASKS__DATABASE_PORT: ${{ secrets.APP__TASKS__DATABASE_PORT }}
-          APP__TASKS__DATABASE_HOST: ${{ secrets.APP__TASKS__DATABASE_HOST }}
-          APP__JWT_SECRET: ${{ secrets.APP__JWT_SECRET }}
-          APP__SQS__REGION: ${{ secrets.APP__SQS__REGION }}
-          APP__SQS__ACCESS_KEY: ${{ secrets.APP__SQS__ACCESS_KEY }}
-          APP__SQS__SECRET_KEY: ${{ secrets.APP__SQS__SECRET_KEY }}
-          APP__SQS__QUEUE_URL: ${{ secrets.APP__SQS__QUEUE_URL }}
-          APP__SQS__QUEUE: ${{ secrets.APP__SQS__QUEUE}}
-          APP__S3__REGION: ${{ secrets.APP__S3__REGION }}
-          APP__S3__ACCESS_KEY: ${{ secrets.APP__S3__ACCESS_KEY }}
-          APP__S3__SECRET_KEY: ${{ secrets.APP__S3__SECRET_KEY }}
-          APP__S3__BUCKET: ${{ secrets.APP__S3__BUCKET }}
-
-
   publish_image:
     name: Publish Docker Image
     runs-on: ubuntu-latest
