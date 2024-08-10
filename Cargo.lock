@@ -1541,21 +1541,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "init"
-version = "0.1.0"
-dependencies = [
- "aws-sdk-s3",
- "aws-sdk-sqs",
- "common",
- "config",
- "serde",
- "serde_json",
- "tasks",
- "tokio",
- "tracing",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3896,10 +3881,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "worker"
+name = "worker_init"
 version = "0.1.0"
 dependencies = [
+ "aws-sdk-s3",
+ "aws-sdk-sqs",
+ "common",
+ "config",
+ "serde",
+ "serde_json",
+ "tasks",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "worker_main"
+version = "0.1.0"
+dependencies = [
+ "common",
  "reqwest",
+ "serde_json",
  "tokio",
  "tracing",
 ]

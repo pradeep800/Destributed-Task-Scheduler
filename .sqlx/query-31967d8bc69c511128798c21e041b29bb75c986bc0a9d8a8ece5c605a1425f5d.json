@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE Tasks\n                SET file_uploaded = true\n                WHERE id = $1\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "31967d8bc69c511128798c21e041b29bb75c986bc0a9d8a8ece5c605a1425f5d"
+}

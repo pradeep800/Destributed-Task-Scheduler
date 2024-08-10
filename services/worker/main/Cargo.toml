@@ -1,9 +1,11 @@
 [package]
-name = "worker"
+name = "worker_main"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+common = { version = "0.1.0", path = "../../../crates/common" }
 reqwest.workspace = true
+serde_json.workspace = true
 tokio={workspace=true}
 tracing.workspace = true

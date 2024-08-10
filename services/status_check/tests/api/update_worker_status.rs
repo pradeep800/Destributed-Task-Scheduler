@@ -2,10 +2,7 @@ use common::jwt::Jwt;
 use health_checks::HealthCheckDb;
 use tasks::TasksDb;
 
-use crate::{
-    health_check,
-    test_helpers::{generate_random_processing_task, spawn},
-};
+use crate::test_helpers::{generate_random_processing_task, spawn};
 use axum::http::{HeaderMap, HeaderValue};
 
 #[tokio::test]

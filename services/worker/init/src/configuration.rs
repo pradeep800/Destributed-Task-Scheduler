@@ -1,13 +1,12 @@
-use std::env;
-
 use common::{database::Database, s3::S3, sqs::SQS};
+use std::env;
 use std::path::PathBuf;
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Config {
     #[serde(alias = "S3")]
     pub s3: S3,
     #[serde(alias = "DATABASE")]
-    pub database: Database,
+    pub tasks: Database,
     pub sqs: SQS,
     #[serde(alias = "JWT_SECRET")]
     pub jwt_secret: String,

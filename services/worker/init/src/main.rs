@@ -2,9 +2,10 @@ use aws_sdk_s3::Client as S3Client;
 use aws_sdk_sqs::Client as SQSClient;
 use common::jwt::Jwt;
 use common::tracing::{get_subscriber, init_subscriber};
-use init::configuration::get_configuration;
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
+use tracing::{error, info, info_span};
+use worker_init::configuration::get_configuration;
 
 use std::path::Path;
 use tokio::fs::File;
@@ -21,49 +22,52 @@ struct MessageData {
 #[tokio::main]
 async fn main() {
     let subscriber = get_subscriber(
-        "pub_task_scheduler_api".to_string(),
+        "init worker".to_string(),
         "info".to_string(),
         std::io::stdout,
     );
     init_subscriber(subscriber);
     let config = get_configuration();
-    let task_db_pool = config.database.get_pool().await;
+    let task_db_pool = config.tasks.get_pool().await;
     let tasks_db = TasksDb::new(&task_db_pool);
     let s3_client = config.s3.create_s3_client().await;
 
     let sqs_client = config.sqs.create_client().await;
     let mut message: Option<MessageData> = None;
     let mut receipt_handle: Option<String> = None;
+    let mut i = 1;
     while message.is_none() {
         match receive(&sqs_client, &config.sqs.queue_url).await {
             Ok(ReceiveReturn {
                 receipt_handle: rh,
                 data,
             }) => {
+                println!("{:?} {:?}", data, rh);
                 if data.is_some() {
                     message = Some(data.unwrap());
                     receipt_handle = Some(rh.unwrap());
+                } else {
+                    info!("pooling for task {} th time", i);
+                    sleep(Duration::from_secs(1)).await;
+                    i += 1;
+                    continue;
                 }
+
                 break;
             }
             Err(e) => {
-                println!("Error receiving message: {}", e);
+                error!("Error receiving message: {}", e);
             }
         }
-        sleep(Duration::from_secs(1)).await;
     }
     let message = message.unwrap();
+    let span = info_span!("init worker", tracing_id = message.tracing_id);
+
+    let _ = span.enter();
     let receipt_handle = receipt_handle.unwrap();
-    println!("{:?}:{:?}", message, receipt_handle);
-    let share_vol = format!("/shared/{}", message.task_id);
-    download_file_and_put_volume(
-        &s3_client,
-        &config.s3.bucket,
-        &message.task_id.to_string(),
-        share_vol.as_str(),
-    )
-    .await
-    .unwrap();
+    download_file_and_put_volume(&s3_client, &config.s3.bucket, &message.task_id.to_string())
+        .await
+        .unwrap();
 
     let mut f = File::create_new("/shared/worker.txt").await.unwrap();
 
@@ -93,7 +97,6 @@ pub async fn download_file_and_put_volume(
     client: &S3Client,
     bucket_name: &str,
     object_key: &str,
-    local_file_path: &str,
 ) -> Result<(), aws_sdk_s3::Error> {
     let get_object_output = client
         .get_object()
@@ -101,7 +104,7 @@ pub async fn download_file_and_put_volume(
         .key(object_key)
         .send()
         .await?;
-    let mut file = File::create(Path::new(local_file_path)).await.unwrap();
+    let mut file = File::create(Path::new("/shared/tasks")).await.unwrap();
 
     let stream = get_object_output.body;
     let data = stream.collect().await.unwrap();

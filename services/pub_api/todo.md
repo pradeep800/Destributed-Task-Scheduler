@@ -10,3 +10,5 @@
 - [ ] write better test which are working with time for example "remove_health_entry"
 - [ ] check if something is changing in update if no then throw error?
 - [ ] add version to files of kubernative (not latest)
+- [ ] add props in k8s file
+- [ ] add cpu uses and all in k3s file
