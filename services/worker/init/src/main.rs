@@ -65,7 +65,7 @@ async fn main() {
     .await
     .unwrap();
 
-    let mut f = File::create_new("/shared/jwt.txt").await.unwrap();
+    let mut f = File::create_new("/shared/worker.txt").await.unwrap();
 
     let hostname = std::env::var("HOST_NAME").unwrap();
     let jwt_client = Jwt::new(config.jwt_secret);

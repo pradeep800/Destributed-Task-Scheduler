@@ -9,6 +9,10 @@ containers:
 secrets:
   - tasks-secrets
   - health-check-secrets 
-# no cron job
 cron_job:
   enable: false 
+volume:
+  enable: false
+postgres_statefulset:
+  enable: false
+

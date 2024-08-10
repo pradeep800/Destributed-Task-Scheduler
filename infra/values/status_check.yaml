@@ -1,4 +1,4 @@
-app: status_check
+app: status-check
 deployment:
   enable: true
   replicas: 2
@@ -8,12 +8,15 @@ service:
   targetPort: 4000 
   type: ClusterIP 
 containers:
-    image: pradeep800/status_check
+    image: pradeep800/status_check:latest
     containerPort: 4000 
 secrets:
   - tasks-secrets
   - health-check-secrets 
   - jwt-secrets
-# no cron job
 cron_job:
   enable: false 
+postgres_statefulset:
+  enable: false
+volume:
+  enable: false

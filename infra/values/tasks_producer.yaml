@@ -1,9 +1,13 @@
-app: tasks_producer
+app: tasks-producer
 deployment:
   enable: true
   replicas: 2
 service:
   enable: false 
+volume:
+  enable: false
+postgres_statefulset:
+  enable: false
 containers:
     image: pradeep800/tasks_producer:latest
 secrets:

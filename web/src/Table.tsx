@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import relativeTime from "dayjs/plugin/relativeTime";
 import dayjs from "dayjs";
 import { Spinner } from './App';
+import { URL } from "./App"
 interface Task {
   id: number;
   schedule_at: Date;
@@ -19,6 +20,7 @@ const TaskStatusTable = ({ change }: { change: number }) => {
   useEffect(() => {
     fetch(URL + "task/all/status").then(async res => {
       let data = await res.json() as Task[];
+
       setTasks(data);
     })
 

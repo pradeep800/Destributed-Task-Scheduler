@@ -8,3 +8,5 @@
 - [ ] why docker caching is not working cached image
 - [ ] do better error handling atleast it should print why erroed
 - [ ] write better test which are working with time for example "remove_health_entry"
+- [ ] check if something is changing in update if no then throw error?
+- [ ] add version to files of kubernative (not latest)

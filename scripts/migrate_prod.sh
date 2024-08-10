@@ -8,18 +8,19 @@ run_migrations() {
   local db_name="$3"
   local db_port="$4"
   local db_host="$5"
+  local migration_source="$6"
   export DATABASE_URL="postgres://${db_user}:${db_password}@${db_host}:${db_port}/${db_name}"
   sqlx database create
-  sqlx migrate run --source crates/db/migrations
+  sqlx migrate run --source "${migration_source}"
 }
 
-DB_USER="${POSTGRES_USER:=postgres}"
-DB_PASSWORD="${POSTGRES_PASSWORD:=password}"
-DB_NAME="${POSTGRES_DB:=health_check}"
-DB_PORT="${POSTGRES_PORT:=5432}"
-DB_HOST="${POSTGRES_HOST:="health-checks-db-svc"}"
-run_migrations "$DB_USER" "$DB_PASSWORD" "$DB_NAME" "$DB_PORT" "$DB_HOST"
+db_user=postgres
+db_password=password
+db_name=health_check
+db_port=5432
+db_host=health-checks-db-svc
+run_migrations "$db_user" "$db_password" "$db_name" "$db_port" "$db_host" "crates/db/health_checks/migrations"
 
-DB_NAME="${POSTGRES_DB:=tasks}"
-DB_HOST="${POSTGRES_HOST:="tasks-db-svc"}"
-run_migrations "$DB_USER" "$DB_PASSWORD" "$DB_NAME" "$DB_PORT" "$DB_HOST"
+db_name=tasks
+db_host=tasks-db-svc
+run_migrations "$db_user" "$db_password" "$db_name" "$db_port" "$db_host" "crates/db/tasks/migrations"
