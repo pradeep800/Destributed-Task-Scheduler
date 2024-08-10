@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-deployment
+  labels:
+    app: worker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
+      initContainers:
+        - name: fetch-task
+          image: pradeep800/worker_init:latest
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /shared
+          envFrom:
+            - secretRef:
+                name: tasks-secrets
+            - secretRef:
+                name: sqs-secrets
+            - secretRef:
+                name: jwt-secrets
+            - secretRef:
+                name: s3-secrets
+        - name: set-permissions
+          image: busybox
+          command: ["chmod", "+x", "/shared/task"]
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /shared
+      containers:
+        - name: main-task
+          image: pradeep800/worker_main:latest
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /shared
+

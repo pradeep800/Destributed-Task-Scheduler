@@ -22,7 +22,7 @@ helm install tasks-db . -f values/tasks_db.yaml
 ### set up health_check db
 
 ```
-helm install tasks-db . -f values/tasks_db.yaml
+helm install health-db . -f values/health_check_db.yaml
 ```
 
 ### Do migration in those database
@@ -46,6 +46,7 @@ helm install  producer . -f values/tasks_producer.yaml
 ### Set up worker init and main 
 
 ```
+kubectl apply -f init_container.yaml
 ```
 
 ### Set up status check 

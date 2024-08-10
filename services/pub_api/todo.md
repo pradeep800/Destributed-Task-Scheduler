@@ -12,3 +12,4 @@
 - [ ] add version to files of kubernative (not latest)
 - [ ] add props in k8s file
 - [ ] add cpu uses and all in k3s file
+- [ ] check health check

@@ -66,8 +66,7 @@ async fn main() {
                             })
                             .await
                         {
-                            error!("Can't send message to one shot");
-                            panic!("Can't send message to one shot");
+                            error_with_panic("Can't send message channel").await;
                         }
                     } else {
                         if let Err(_err) = tx
@@ -80,8 +79,7 @@ async fn main() {
                             })
                             .await
                         {
-                            error!("Can't send message to one shot");
-                            panic!("Can't send message to one shot");
+                            error_with_panic("Can't send message to channel").await;
                         }
                     }
                 }
@@ -93,7 +91,7 @@ async fn main() {
                         })
                         .await
                     {
-                        error_with_panic("Can't send message to one shot").await;
+                        error_with_panic("Can't send message to channel").await;
                     }
                 }
             },
@@ -105,7 +103,7 @@ async fn main() {
                     })
                     .await
                 {
-                    error_with_panic("Can't send message to one shot").await;
+                    error_with_panic("Can't send message to channel").await;
                 }
             }
         };
@@ -130,7 +128,7 @@ async fn main() {
                             })
                             .await
                         {
-                            panic!("Can't send message to one shot");
+                            error_with_panic("Can't send message to channel").await;
                         }
                     }
                 }

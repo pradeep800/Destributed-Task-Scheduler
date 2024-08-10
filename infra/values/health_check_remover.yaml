@@ -10,7 +10,8 @@ postgres_statefulset:
   enable: false
 volume:
   enable: false
-containers:
 secrets:
   - health-check-secrets 
+
+
 
