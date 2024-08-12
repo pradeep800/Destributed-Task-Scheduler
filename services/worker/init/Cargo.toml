@@ -13,3 +13,4 @@ common = { version = "0.1.0", path = "../../../crates/common" }
 tasks = { version = "0.1.0", path = "../../../crates/db/tasks" }
 aws-sdk-sqs = { workspace=true}
 serde_json.workspace = true
+health_checks = { version = "0.1.0", path = "../../../crates/db/health_checks" }

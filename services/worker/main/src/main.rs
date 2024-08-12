@@ -13,7 +13,7 @@ use tokio::{
     select,
     time::{interval, timeout},
 };
-use tracing::{error, info_span};
+use tracing::{error, info, info_span};
 
 const HEART_BEAT_INTERVAL_IN_SECOND: i32 = 5;
 const GRACEFUL_SHUTDOWN_TIMEOUT_IN_SECOND: i32 = 20 * 60;
@@ -26,7 +26,11 @@ struct ChannelBody {
 
 #[tokio::main]
 async fn main() {
-    let subscriber = get_subscriber("worker".to_string(), "info".to_string(), std::io::stdout);
+    let subscriber = get_subscriber(
+        "worker_main".to_string(),
+        "info".to_string(),
+        std::io::stdout,
+    );
     init_subscriber(subscriber);
 
     let mut jwt: Option<String> = None;
@@ -44,10 +48,15 @@ async fn main() {
             i += 1;
         }
     }
+
     let tracing_id = tracing_id.unwrap();
-    let info_span = info_span!("worker info span", tracing_id = tracing_id);
+    info!("got tracing id {}", tracing_id);
+    let info_span = info_span!("worker info span {}", tracing_id);
     let _ = info_span.enter();
+    info!("added tracing id to span ");
     let jwt: Arc<String> = Arc::new(jwt.unwrap());
+    info!("got jwt {}", jwt);
+
     let heartbeat_interval = Duration::from_secs(HEART_BEAT_INTERVAL_IN_SECOND as u64);
     let graceful_shutdown_timeout = Duration::from_secs(GRACEFUL_SHUTDOWN_TIMEOUT_IN_SECOND as u64);
 
@@ -55,9 +64,16 @@ async fn main() {
     let tx_clone = tx.clone();
 
     let task_with_timeout = tokio::spawn(async move {
-        match timeout(graceful_shutdown_timeout, Command::new("/task").status()).await {
+        info!("inside another task");
+        match timeout(
+            graceful_shutdown_timeout,
+            Command::new("/shared/task").status(),
+        )
+        .await
+        {
             Ok(result) => match result {
                 Ok(status) => {
+                    info!("inside worker");
                     if status.success() {
                         if let Err(_err) = tx
                             .send(ChannelBody {
@@ -114,6 +130,7 @@ async fn main() {
         let mut interval = interval(heartbeat_interval);
         let mut i = 0;
         loop {
+            info!("sending heartbeats");
             match send_heartbeat(&jsonwebtoken).await {
                 Ok(_) => {
                     i = 0;
@@ -140,6 +157,7 @@ async fn main() {
         _ = task_with_timeout => {},
         _ = heartbeat_task => {},
         task_body = rx.recv() => {
+             info!("task completed");
             send_completion_status_check(&task_body, &Arc::clone(&jwt)).await;
         }
     }

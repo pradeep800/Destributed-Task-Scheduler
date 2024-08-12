@@ -3,11 +3,7 @@ use pub_api::{configuration::get_configuration, startup::get_server};
 
 #[tokio::main]
 async fn main() {
-    let subscriber = get_subscriber(
-        "pub_task_scheduler_api".to_string(),
-        "info".to_string(),
-        std::io::stdout,
-    );
+    let subscriber = get_subscriber("pub_api".to_string(), "info".to_string(), std::io::stdout);
     let config = get_configuration();
     init_subscriber(subscriber);
 

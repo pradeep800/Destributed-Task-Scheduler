@@ -3,7 +3,7 @@ use health_check_remover::{configuration::get_configuration, process::process};
 #[tokio::main]
 async fn main() {
     let subscriber = get_subscriber(
-        "pub_task_scheduler_api".to_string(),
+        "health_check_remover".to_string(),
         "info".to_string(),
         std::io::stdout,
     );

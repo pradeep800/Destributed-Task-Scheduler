@@ -4,7 +4,7 @@ use retry_and_failed_updater::{configuration::get_configuration, process::proces
 #[tokio::main]
 async fn main() {
     let subscriber = get_subscriber(
-        "Retry and failed updater".to_string(),
+        "retry_and_failed_updater".to_string(),
         "info".to_string(),
         std::io::stdout,
     );

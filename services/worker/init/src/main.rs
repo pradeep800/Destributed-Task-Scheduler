@@ -7,6 +7,7 @@ use tokio::io::AsyncWriteExt;
 use tracing::{error, info, info_span};
 use worker_init::configuration::get_configuration;
 
+use health_checks::HealthCheckDb;
 use std::path::Path;
 use tokio::fs::File;
 
@@ -22,7 +23,7 @@ struct MessageData {
 #[tokio::main]
 async fn main() {
     let subscriber = get_subscriber(
-        "init worker".to_string(),
+        "worker_init".to_string(),
         "info".to_string(),
         std::io::stdout,
     );
@@ -31,6 +32,9 @@ async fn main() {
     let task_db_pool = config.tasks.get_pool().await;
     let tasks_db = TasksDb::new(&task_db_pool);
     let s3_client = config.s3.create_s3_client().await;
+
+    let health_db_pool = config.health_check.get_pool().await;
+    let health_db = HealthCheckDb::new(&health_db_pool);
 
     let sqs_client = config.sqs.create_client().await;
     let mut message: Option<MessageData> = None;
@@ -46,19 +50,16 @@ async fn main() {
                 if data.is_some() {
                     message = Some(data.unwrap());
                     receipt_handle = Some(rh.unwrap());
-                } else {
-                    info!("pooling for task {} th time", i);
-                    sleep(Duration::from_secs(1)).await;
-                    i += 1;
-                    continue;
+                    break;
                 }
-
-                break;
             }
             Err(e) => {
                 error!("Error receiving message: {}", e);
             }
         }
+        info!("pooling for task {} th time", i);
+        i += 1;
+        sleep(Duration::from_secs(1)).await;
     }
     let message = message.unwrap();
     let span = info_span!("init worker", tracing_id = message.tracing_id);
@@ -68,22 +69,28 @@ async fn main() {
     download_file_and_put_volume(&s3_client, &config.s3.bucket, &message.task_id.to_string())
         .await
         .unwrap();
-
+    info!("created file worker.txt");
     let mut f = File::create(Path::new("/shared/worker.txt")).await.unwrap();
-
-    let hostname = std::env::var("HOST_NAME").unwrap();
+    info!("getting host name");
+    let hostname = std::env::var("HOSTNAME").unwrap();
     let jwt_client = Jwt::new(config.jwt_secret);
+    info!("encoding jwt");
     let jwt = jwt_client
         .encode(&message.tracing_id, message.task_id, &hostname)
         .unwrap()
         + "\n";
+    info!("writing jwt");
     let _ = f.write_all(jwt.as_bytes()).await;
+
+    info!("writing tracing_id");
     let _ = f.write_all(message.tracing_id.as_bytes()).await;
     drop(f);
+    info!("Releasedthe created file");
     tasks_db
         .update_picked_at_by_workers(message.task_id)
         .await
         .unwrap();
+    info!("set picked at by worker in db");
     sqs_client
         .delete_message()
         .queue_url(config.sqs.queue_url)
@@ -91,6 +98,13 @@ async fn main() {
         .send()
         .await
         .unwrap();
+    info!("delted task from queue");
+    health_db
+        .cu_health_check_entries(message.task_id, &hostname)
+        .await
+        .unwrap();
+    info!("created health entry");
+    info!("completed");
 }
 
 pub async fn download_file_and_put_volume(
@@ -104,7 +118,7 @@ pub async fn download_file_and_put_volume(
         .key(object_key)
         .send()
         .await?;
-    let mut file = File::create(Path::new("/shared/tasks")).await.unwrap();
+    let mut file = File::create(Path::new("/shared/task")).await.unwrap();
 
     let stream = get_object_output.body;
     let data = stream.collect().await.unwrap();

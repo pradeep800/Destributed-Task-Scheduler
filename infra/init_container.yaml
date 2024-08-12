@@ -10,10 +10,12 @@ spec:
     matchLabels:
       app: worker
   template:
+  
     metadata:
       labels:
         app: worker
     spec:
+      restartPolicy: Always
       volumes:
         - name: shared-volume
           emptyDir: {}
@@ -32,6 +34,10 @@ spec:
                 name: jwt-secrets
             - secretRef:
                 name: s3-secrets
+            - secretRef:
+                name: health-check-secrets
+
+
         - name: set-permissions
           image: busybox
           command: ["chmod", "+x", "/shared/task"]

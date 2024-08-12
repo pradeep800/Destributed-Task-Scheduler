@@ -1,8 +1,8 @@
 We want statically link binary so we can do it by two types
-# 1st type
+# Method 1   
 install x86_64-unknown-linux-musl 
 
-# 2nd type
+# Method 2 
 With docker
 ## step 1
 copy this docker file

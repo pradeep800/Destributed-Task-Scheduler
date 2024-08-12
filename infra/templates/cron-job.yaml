@@ -12,6 +12,6 @@ spec:
           containers:
           - name: {{.Values.app}}
             image: {{.Values.cron_job.image}} 
+{{ include "helpers.list-env-variables" . | indent 12 }}
           restartPolicy: OnFailure
-{{ include "helpers.list-env-variables" . | indent 10 }}
 {{-  end }}
