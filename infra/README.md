@@ -25,10 +25,22 @@ helm install tasks-db . -f values/tasks_db.yaml
 helm install health-db . -f values/health_check_db.yaml
 ```
 
+**Wait for these pod to be in running phase**
 ### Do migration in those database
 
 ```
 kubectl apply -f migration.yaml
+```
+### Install grafana 
+
+```
+helm install grafana . -f values/grafana.yaml
+```   
+
+### Install loki
+
+```
+helm install  loki . -f values/loki.yaml
 ```
 
 ### Set up public API

@@ -10,12 +10,11 @@ spec:
     matchLabels:
       app: worker
   template:
-  
     metadata:
       labels:
         app: worker
     spec:
-      restartPolicy: Always
+      restartPolicy: Always 
       volumes:
         - name: shared-volume
           emptyDir: {}
@@ -36,8 +35,6 @@ spec:
                 name: s3-secrets
             - secretRef:
                 name: health-check-secrets
-
-
         - name: set-permissions
           image: busybox
           command: ["chmod", "+x", "/shared/task"]
@@ -45,8 +42,9 @@ spec:
             - name: shared-volume
               mountPath: /shared
       containers:
-        - name: main-task
-          image: pradeep800/worker_main:latest
+        - name: sleep 
+          image: busybox
+          command: ["sleep", "100" ]
           volumeMounts:
             - name: shared-volume
               mountPath: /shared

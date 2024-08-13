@@ -13,12 +13,14 @@ use tokio::{
     select,
     time::{interval, timeout},
 };
-use tracing::{error, info, info_span};
+use tracing::Instrument;
+use tracing::{error, info, info_span, instrument};
 
 const HEART_BEAT_INTERVAL_IN_SECOND: i32 = 5;
 const GRACEFUL_SHUTDOWN_TIMEOUT_IN_SECOND: i32 = 20 * 60;
 const URL: &str = "http://status-check-svc:80";
 
+#[derive(Debug)]
 struct ChannelBody {
     pub status: String,
     pub body: Option<String>,
@@ -52,7 +54,7 @@ async fn main() {
     let tracing_id = tracing_id.unwrap();
     info!("got tracing id {}", tracing_id);
     let info_span = info_span!("worker info span {}", tracing_id);
-    let _ = info_span.enter();
+    let _guard = info_span.enter();
     info!("added tracing id to span ");
     let jwt: Arc<String> = Arc::new(jwt.unwrap());
     info!("got jwt {}", jwt);
@@ -63,42 +65,57 @@ async fn main() {
     let (tx, mut rx) = mpsc::channel(1);
     let tx_clone = tx.clone();
 
-    let task_with_timeout = tokio::spawn(async move {
-        info!("inside another task");
-        match timeout(
-            graceful_shutdown_timeout,
-            Command::new("/shared/task").status(),
-        )
-        .await
-        {
-            Ok(result) => match result {
-                Ok(status) => {
-                    info!("inside worker");
-                    if status.success() {
-                        if let Err(_err) = tx
-                            .send(ChannelBody {
-                                status: "SUCCESS".to_string(),
-                                body: None,
-                            })
-                            .await
-                        {
-                            error_with_panic("Can't send message channel").await;
+    let task_with_timeout = tokio::spawn(
+        async move {
+            info!("inside timeout task");
+            match timeout(
+                graceful_shutdown_timeout,
+                Command::new("/shared/task").status(),
+            )
+            .await
+            {
+                Ok(result) => match result {
+                    Ok(status) => {
+                        info!("inside worker");
+                        if status.success() {
+                            if let Err(_err) = tx
+                                .send(ChannelBody {
+                                    status: "SUCCESS".to_string(),
+                                    body: None,
+                                })
+                                .await
+                            {
+                                error_with_panic("Can't send message channel").await;
+                            }
+                        } else {
+                            if let Err(_err) = tx
+                                .send(ChannelBody {
+                                    status: "FAILED".to_string(),
+                                    body: Some(format!(
+                                        "Task status code is {}",
+                                        status
+                                            .code()
+                                            .map_or("not 0".to_string(), |s| s.to_string())
+                                    )),
+                                })
+                                .await
+                            {
+                                error_with_panic("Can't send message to channel").await;
+                            }
                         }
-                    } else {
+                    }
+                    Err(_) => {
                         if let Err(_err) = tx
                             .send(ChannelBody {
                                 status: "FAILED".to_string(),
-                                body: Some(format!(
-                                    "Task status code is {}",
-                                    status.code().map_or("not 0".to_string(), |s| s.to_string())
-                                )),
+                                body: Some(format!("Task status code is {}", "not 0")),
                             })
                             .await
                         {
                             error_with_panic("Can't send message to channel").await;
                         }
                     }
-                }
+                },
                 Err(_) => {
                     if let Err(_err) = tx
                         .send(ChannelBody {
@@ -110,62 +127,57 @@ async fn main() {
                         error_with_panic("Can't send message to channel").await;
                     }
                 }
-            },
-            Err(_) => {
-                if let Err(_err) = tx
-                    .send(ChannelBody {
-                        status: "FAILED".to_string(),
-                        body: Some(format!("Task status code is {}", "not 0")),
-                    })
-                    .await
-                {
-                    error_with_panic("Can't send message to channel").await;
-                }
-            }
-        };
-    });
+            };
+        }
+        .in_current_span(),
+    );
 
     let jsonwebtoken = Arc::clone(&jwt);
-    let heartbeat_task = tokio::spawn(async move {
-        let mut interval = interval(heartbeat_interval);
-        let mut i = 0;
-        loop {
-            info!("sending heartbeats");
-            match send_heartbeat(&jsonwebtoken).await {
-                Ok(_) => {
-                    i = 0;
-                }
-                Err(_) => {
-                    i += 1;
-                    if i == 6 {
-                        if let Err(_err) = tx_clone
-                            .send(ChannelBody {
-                                status: "FAILED".to_string(),
-                                body: Some(format!("Task status code is {}", "not 0")),
-                            })
-                            .await
-                        {
-                            error_with_panic("Can't send message to channel").await;
+    let heartbeat_task = tokio::spawn(
+        async move {
+            let mut interval = interval(heartbeat_interval);
+            let mut i = 0;
+            loop {
+                info!("sending heartbeats");
+                match send_heartbeat(&jsonwebtoken).await {
+                    Ok(_) => {
+                        i = 0;
+                    }
+                    Err(_) => {
+                        i += 1;
+                        if i == 6 {
+                            if let Err(_err) = tx_clone
+                                .send(ChannelBody {
+                                    status: "FAILED".to_string(),
+                                    body: Some(format!("Task status code is {}", "not 0")),
+                                })
+                                .await
+                            {
+                                error_with_panic("Can't send message to channel").await;
+                            }
                         }
                     }
                 }
+                interval.tick().await;
             }
-            interval.tick().await;
         }
-    });
+        .in_current_span(),
+    );
     select! {
         _ = task_with_timeout => {},
         _ = heartbeat_task => {},
         task_body = rx.recv() => {
-             info!("task completed");
+
             send_completion_status_check(&task_body, &Arc::clone(&jwt)).await;
         }
     }
 }
 
+#[instrument(level = "info")]
 async fn send_completion_status_check(task_body: &Option<ChannelBody>, jwt: &Arc<String>) {
     match task_body {
         Some(tb) => {
+            info!("tb {:?}", tb);
             send_status(tb, jwt).await;
         }
         None => {
@@ -174,6 +186,7 @@ async fn send_completion_status_check(task_body: &Option<ChannelBody>, jwt: &Arc
     }
 }
 
+#[instrument(level = "info")]
 async fn send_heartbeat(jwt: &Arc<String>) -> Result<(), reqwest::Error> {
     let jwt = format!("{}", jwt);
     let client = reqwest::Client::new();
@@ -184,13 +197,13 @@ async fn send_heartbeat(jwt: &Arc<String>) -> Result<(), reqwest::Error> {
         .await?;
     Ok(())
 }
-
+#[instrument(level = "info")]
 async fn send_status(cb: &ChannelBody, jwt: &Arc<String>) {
     let jsonwebtoken = format!("{}", jwt);
     let client = reqwest::Client::new();
+    let mut i: u32 = 1;
+    let two: u32 = 2;
     if cb.status == "SUCCESS" {
-        let mut i: u32 = 0;
-        let two: u32 = 2;
         loop {
             let res = client
                 .post(format!("{}/worker/update-status", URL))
@@ -199,30 +212,45 @@ async fn send_status(cb: &ChannelBody, jwt: &Arc<String>) {
                 .send()
                 .await
                 .unwrap();
-            if res.status() != 200 {
-                if i == 3 {
-                    error_with_panic("Can't able to send status in 3 try").await;
-                    break;
-                }
-                let time = two.pow(i);
-                sleep(Duration::from_secs(time as u64)).await;
 
-                i += 1;
-                continue;
+            if res.status() == 200 {
+                info!("status updated successfully (status:success)");
+                break;
             }
-            break;
+            if i == 4 {
+                error_with_panic("Can't able to send status in 3 try").await;
+            }
+            info!("trying to send success to status check {}th time", i);
+            let time = two.pow(i);
+            sleep(Duration::from_secs(time as u64)).await;
+
+            i += 1;
         }
     } else {
-        client
-            .post(format!("{}/worker/update-status", URL))
-            .json(&serde_json::json!({"status":"FAILED","failed_reason":cb.status}))
-            .header(header::AUTHORIZATION, &jsonwebtoken)
-            .send()
-            .await
-            .unwrap();
+        loop {
+            let res = client
+                .post(format!("{}/worker/update-status", URL))
+                .json(&serde_json::json!({"status":"FAILED","failed_reason":cb.status}))
+                .header(header::AUTHORIZATION, &jsonwebtoken)
+                .send()
+                .await
+                .unwrap();
+            if res.status() == 200 {
+                info!("status updated successfully (status:failure)");
+                break;
+            }
+            if i == 4 {
+                error_with_panic("Can't able to send status in 3 try").await;
+            }
+            info!("trying to send failed to status check {}th time", i);
+            let time = two.pow(i);
+            sleep(Duration::from_secs(time as u64)).await;
+            i += 1;
+        }
     }
 }
 
+#[instrument(level = "error")]
 async fn error_with_panic(message: &str) {
     error!(message);
     sleep(Duration::from_secs(2)).await;

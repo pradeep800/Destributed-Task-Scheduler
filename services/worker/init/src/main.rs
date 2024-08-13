@@ -46,7 +46,7 @@ async fn main() {
                 receipt_handle: rh,
                 data,
             }) => {
-                println!("{:?} {:?}", data, rh);
+                info!("{:?} {:?}", data, rh);
                 if data.is_some() {
                     message = Some(data.unwrap());
                     receipt_handle = Some(rh.unwrap());
@@ -64,7 +64,7 @@ async fn main() {
     let message = message.unwrap();
     let span = info_span!("init worker", tracing_id = message.tracing_id);
 
-    let _ = span.enter();
+    let _guard = span.enter();
     let receipt_handle = receipt_handle.unwrap();
     download_file_and_put_volume(&s3_client, &config.s3.bucket, &message.task_id.to_string())
         .await
@@ -85,20 +85,25 @@ async fn main() {
     info!("writing tracing_id");
     let _ = f.write_all(message.tracing_id.as_bytes()).await;
     drop(f);
-    info!("Releasedthe created file");
+    info!("releasing created file");
     tasks_db
         .update_picked_at_by_workers(message.task_id)
         .await
         .unwrap();
     info!("set picked at by worker in db");
-    sqs_client
+    match sqs_client
         .delete_message()
         .queue_url(config.sqs.queue_url)
         .receipt_handle(receipt_handle)
         .send()
         .await
-        .unwrap();
-    info!("delted task from queue");
+    {
+        Ok(_) => info!("Message deleted successfully"),
+        Err(e) => {
+            error!("Failed to delete message: {:?}", e);
+            panic!("didn't able to delete message");
+        }
+    }
     health_db
         .cu_health_check_entries(message.task_id, &hostname)
         .await

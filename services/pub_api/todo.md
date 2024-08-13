@@ -17,3 +17,4 @@
 - [ ] in ui when it start executing stop showing them how much time left
 - [ ] status is not valid in most cases
 - [ ] make date  selector better in ui
+- [ ] remove all print

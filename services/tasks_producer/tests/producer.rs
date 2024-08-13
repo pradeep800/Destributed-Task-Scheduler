@@ -4,6 +4,7 @@ use tasks::helper_fn::TaskFaker;
 use tasks::TasksDb;
 use tasks_producer::producer::producer;
 use tokio::time::{sleep, Duration};
+use tracing::info;
 #[tokio::test]
 async fn testing_producer() {
     let config = spawn().await;

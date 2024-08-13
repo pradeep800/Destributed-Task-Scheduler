@@ -5,6 +5,7 @@ use axum::{
 use health_checks::HealthCheckDb;
 use std::sync::Arc;
 use tasks::TasksDb;
+use tracing::{info, info_span};
 
 use crate::{error::AppError, startup::AppState};
 use common::jwt::Claims;
@@ -34,6 +35,9 @@ pub async fn update_status(
         .await
         .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
     //our  worker is finished  (successful/unsuccessful)
+    let span = info_span!("tracing_id ={}", current_task.tracing_id);
+    let _guard = span.enter();
+
     HealthCheckDb::worker_finished(
         &mut health_check_transaction,
         claims.task_id,
@@ -41,19 +45,23 @@ pub async fn update_status(
     )
     .await
     .map_err(|e| AppError::InternalServerError(anyhow::Error::new(e)))?;
+    info!("updated worker as completed");
     if body.status == "SUCCESS" {
+        info!("added successful entry to tasks");
         TasksDb::update_successful_task_with_id(&mut task_transaction, claims.task_id)
             .await
             .map_err(|x| AppError::InternalServerError(anyhow::Error::new(x)))?;
     }
     // if worker send us failed
     else if body.status == "FAILED" {
+        info!("adding failing entry to tasks");
         // we will check if total_retry > current_retry do these operation
         // current_retry++
         // failed_at=now
         // is_producible=true
         // failed_reason=reason
         if current_task.total_retry > current_task.current_retry {
+            info!("total_retry > current_retry");
             TasksDb::increase_current_retry_add_failed_and_is_producible_true(
                 &mut task_transaction,
                 claims.task_id,
@@ -69,6 +77,7 @@ pub async fn update_status(
         // is_producible=false
         // and task_completed =  true in health_check database
         else {
+            info!("total_retry = current_retry");
             TasksDb::add_failed_with_trans(
                 &mut task_transaction,
                 claims.task_id,
@@ -81,6 +90,7 @@ pub async fn update_status(
     //  Unknown status
     else {
         // If Unknown status rollback the transaction
+        info!("find unknown status");
         task_transaction
             .rollback()
             .await
@@ -94,6 +104,7 @@ pub async fn update_status(
             "Unknown type of status"
         )));
     }
+    info!("committed everything");
     task_transaction
         .commit()
         .await

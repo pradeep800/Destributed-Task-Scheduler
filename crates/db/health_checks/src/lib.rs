@@ -78,8 +78,7 @@ impl<'a> HealthCheckDb<'a> {
             "UPDATE health_check_entries SET 
          worker_finished=true
          WHERE task_id=$1 AND
-         pod_name=$2 AND
-         worker_finished=false
+         pod_name=$2 
          ",
             task_id,
             pod_name
@@ -88,6 +87,7 @@ impl<'a> HealthCheckDb<'a> {
         .await?;
         Ok(())
     }
+
     pub async fn get_10_dead_health_entries(
         health_trans: &mut Transaction<'_, Postgres>,
     ) -> Result<Vec<HealthCheck>, sqlx::Error> {

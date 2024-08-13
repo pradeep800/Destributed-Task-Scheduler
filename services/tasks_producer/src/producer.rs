@@ -2,8 +2,8 @@ use crate::configuration::Config;
 use aws_sdk_sqs::Client;
 use serde_json::json;
 use tokio::time::{sleep, Duration};
-use tracing::{error, info, trace_span};
-
+use tracing::{error, info, info_span, instrument, trace_span};
+#[instrument(level = "info")]
 pub async fn producer(config: &Config) {
     let pool = config.tasks.get_pool().await;
     let mut sqs_retry = 0;
@@ -46,7 +46,7 @@ async fn process_batch(config: &Config, pool: &sqlx::PgPool) -> Result<(), Proce
         "SELECT id, tracing_id
          FROM Tasks
          WHERE schedule_at < now() + INTERVAL '30 seconds'
-         AND is_producible = true
+         AND is_producible =true  
          AND file_uploaded = true
          ORDER BY id
          LIMIT 20
@@ -57,7 +57,8 @@ async fn process_batch(config: &Config, pool: &sqlx::PgPool) -> Result<(), Proce
     .map_err(|_| ProcessError::DbError)?;
     let client = config.sqs.create_client().await;
     for task in &tasks {
-        info!("Producer produce tasks with tracing id {}", task.tracing_id);
+        let span = info_span!("tracing_id = {}", task.tracing_id);
+        let _guard = span.enter();
         if let Err(err) = send_sqs(
             &client,
             json!(SqsBody {
@@ -76,6 +77,7 @@ async fn process_batch(config: &Config, pool: &sqlx::PgPool) -> Result<(), Proce
                 .map_err(|_| ProcessError::DbError)?;
             return Err(ProcessError::SqsError);
         }
+        info!("task produced");
     }
 
     let task_ids: Vec<i32> = tasks.iter().map(|task| task.id).collect();
