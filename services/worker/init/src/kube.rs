@@ -5,7 +5,12 @@ use kube::{
     Client,
 };
 use tracing::info;
-pub async fn create_job(signed_url: String, jwt: String, tracing_id: String) -> Result<()> {
+pub async fn create_job(
+    signed_url: String,
+    jwt: String,
+    tracing_id: String,
+    host_id: &str,
+) -> Result<()> {
     let client = Client::try_default().await?;
     let random_str = uuid::Uuid::new_v4().to_string();
     let name = format!("worker-main-{}", random_str);
@@ -39,6 +44,10 @@ pub async fn create_job(signed_url: String, jwt: String, tracing_id: String) -> 
                             {
                                 "name": "jwt",
                                 "value": jwt
+                            },
+                            {
+                                "name": "host_id",
+                                "value": host_id
                             }
                         ]
                     }],

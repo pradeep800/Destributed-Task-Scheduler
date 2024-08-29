@@ -34,7 +34,7 @@ async fn main() {
 
     let tracing_id = env::var("tracing_id").unwrap();
     let signed_url = env::var("signed_url").unwrap();
-    let host_id = env::var("HOST_NAME").unwrap();
+    let host_id = env::var("host_id").unwrap();
     let jwt = env::var("jwt")
         .unwrap()
         .trim_matches('"')

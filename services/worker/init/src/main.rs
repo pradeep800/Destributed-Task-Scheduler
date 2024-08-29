@@ -60,10 +60,10 @@ async fn main() {
         let span = info_span!("init worker", tracing_id = message.tracing_id);
         let _guard = span.enter();
         let receipt_handle = receipt_handle.unwrap();
-        let hostname = uuid::Uuid::new_v4().to_string();
+        let host_id = uuid::Uuid::new_v4().to_string();
         let jwt_client = Jwt::new(config.jwt_secret.clone());
         let jwt = jwt_client
-            .encode(&message.tracing_id, message.task_id, &hostname)
+            .encode(&message.tracing_id, message.task_id, &host_id)
             .unwrap()
             + "\n";
         let expire_in = Duration::from_secs(60 * 21);
@@ -76,9 +76,14 @@ async fn main() {
             .await
             .unwrap();
 
-        create_job(signed_url.uri().to_string(), jwt, message.tracing_id)
-            .await
-            .unwrap();
+        create_job(
+            signed_url.uri().to_string(),
+            jwt,
+            message.tracing_id,
+            &host_id,
+        )
+        .await
+        .unwrap();
 
         info!("job is created");
         tasks_db
