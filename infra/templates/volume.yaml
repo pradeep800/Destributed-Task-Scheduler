@@ -1,4 +1,4 @@
-{{- if .Values.volume.enable }}
+{{- if .Values.volume}}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

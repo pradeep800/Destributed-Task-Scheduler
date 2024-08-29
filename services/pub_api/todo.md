@@ -6,15 +6,7 @@
 (with cargo instlal something soehting)
 - [ ] remove all warning
 - [ ] why docker caching is not working cached image
-- [ ] do better error handling atleast it should print why erroed
-- [ ] write better test which are working with time for example "remove_health_entry"
-- [ ] check if something is changing in update if no then throw error?
-- [ ] add version to files of kubernative (not latest)
 - [ ] add props in k8s file
 - [ ] add cpu uses and all in k3s file
-- [ ] check health check
-- [ ] if deployment failed it get replace
-- [ ] in ui when it start executing stop showing them how much time left
-- [ ] status is not valid in most cases
-- [ ] make date  selector better in ui
 - [ ] remove all print
+- [ ] in jwt don't add host because host is same for most people add some random string

@@ -58,7 +58,8 @@ helm install  producer . -f values/tasks_producer.yaml
 ### Set up worker init and main 
 
 ```
-kubectl apply -f init_container.yaml
+
+helm install master-container  . -f values/master_container.yaml
 ```
 
 ### Set up status check 

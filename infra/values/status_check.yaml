@@ -1,9 +1,7 @@
 app: status-check
 deployment:
-  enable: true
   replicas: 2
 service:
-  enable: true
   port: 80
   targetPort: 4000 
   type: ClusterIP 
@@ -14,9 +12,4 @@ secrets:
   - tasks-secrets
   - health-check-secrets 
   - jwt-secrets
-cron_job:
-  enable: false 
-postgres_statefulset:
-  enable: false
-volume:
-  enable: false
+

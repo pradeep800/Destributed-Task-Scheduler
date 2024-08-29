@@ -14,6 +14,7 @@ use tokio::{process::Command, select, time::interval};
 use tracing::Instrument;
 use tracing::{error, info, info_span, instrument};
 const HEART_BEAT_INTERVAL_IN_SECOND: i32 = 5;
+const GRACEFUL_SHUTDOWN_TIMEOUT_IN_SECOND: i32 = 20 * 60;
 const URL: &str = "http://status-check-svc:80";
 
 #[derive(Debug)]
@@ -24,47 +25,43 @@ struct ChannelBody {
 
 #[tokio::main]
 async fn main() {
-    // creating subscriber for tracing
     let subscriber = get_subscriber(
         "worker_main".to_string(),
         "info".to_string(),
         std::io::stdout,
     );
     init_subscriber(subscriber);
-
     let tracing_id = env::var("tracing_id").unwrap();
     let signed_url = env::var("signed_url").unwrap();
-    let host_id = env::var("HOST_NAME").unwrap();
     let jwt = env::var("jwt")
         .unwrap()
         .trim_matches('"')
         .trim_end_matches('\n')
         .to_string();
-    info!("all env parsed correctly");
+    println!("Bearer {}", jwt);
 
-    let info_span = info_span!(
-        "worker info span with tracing_id {} and host_id {}",
-        tracing_id,
-        host_id
-    );
+    let info_span = info_span!("worker info span {}", tracing_id);
     let _guard = info_span.enter();
+    info!("added tracing id to span ");
     let jwt: Arc<String> = Arc::new(jwt);
 
     download_file_from_signed_url(&signed_url, "./task")
         .await
         .unwrap();
-    info!("file is downloaded successfully");
+    info!("file is downloaded");
     Command::new("chmod")
         .args(["+x", "./task"])
         .output()
         .await
         .unwrap();
     info!("added +x permissoin to file");
+    execute_binary(tx).await;
     let heartbeat_interval = Duration::from_secs(HEART_BEAT_INTERVAL_IN_SECOND as u64);
+    let graceful_shutdown_timeout = Duration::from_secs(GRACEFUL_SHUTDOWN_TIMEOUT_IN_SECOND as u64);
+
     let (tx, mut rx) = mpsc::channel(1);
     let tx_clone = tx.clone();
     let jsonwebtoken = Arc::clone(&jwt);
-    //keep sending heartbeat
     let heartbeat_task = tokio::spawn(
         async move {
             let mut interval = interval(heartbeat_interval);
@@ -78,7 +75,7 @@ async fn main() {
                     Err(_) => {
                         error!("sending heartbeat {}th time", i);
                         i += 1;
-                        if i == 4 {
+                        if i == 6 {
                             if let Err(_err) = tx_clone
                                 .send(ChannelBody {
                                     status: "FAILED".to_string(),
@@ -96,11 +93,8 @@ async fn main() {
         }
         .in_current_span(),
     );
-    //waiting for atleast one heart is sended to coordinator
     sleep(std::time::Duration::from_secs(2)).await;
-
-    //TODO: it should not go beond this line until one heart beat is sended
-    let binary_task_execution = execute_binary(&tx);
+    let binary_task_execution = execute_binary();
     select! {
         _ = binary_task_execution=> {},
         _ = heartbeat_task => {},
@@ -114,6 +108,7 @@ async fn main() {
 async fn send_completion_status_check(task_body: &Option<ChannelBody>, jwt: &Arc<String>) {
     match task_body {
         Some(tb) => {
+            info!("tb {:?}", tb);
             send_status(tb, jwt).await;
         }
         None => {
@@ -136,7 +131,6 @@ async fn send_heartbeat(jwt: &Arc<String>) -> Result<(), reqwest::Error> {
         .headers(headers)
         .send()
         .await?;
-    info!("heart beat sended");
     Ok(())
 }
 #[instrument(level = "info")]

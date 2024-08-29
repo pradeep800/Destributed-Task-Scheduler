@@ -1,18 +1,10 @@
 app: grafana 
 deployment:
-  enable: true
   replicas: 1
 service:
-  enable: true
   port: 80
   targetPort: 3000
   type: LoadBalancer
 containers:
     image: grafana/grafana-oss
     containerPort: 3000
-cron_job:
-  enable: false 
-postgres_statefulset:
-  enable: false
-volume:
-  enable: false

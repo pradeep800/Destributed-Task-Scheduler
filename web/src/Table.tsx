@@ -77,7 +77,6 @@ const TaskStatusTable = ({ change }: { change: number }) => {
               <td className="px-4 py-2 whitespace-nowrap">
                 <button
                   onClick={() => {
-                    //we know that we can't delete anything so we can use index
 
                     fetch(URL + "task/status", {
                       method: "POST",
@@ -87,14 +86,19 @@ const TaskStatusTable = ({ change }: { change: number }) => {
                       }
                     }).then(async res => {
                       let json = await res.json();
-                      if (res.status == 400) {
-                        alert("Please upload file");
+                      if (res.status == 200) {
+                        setTasks(prevTasks => {
+                          const newTasks = [...prevTasks];
+                          newTasks[task.id - 1] = {
+                            ...json,
+                            current_retry: json.currently_retrying_at
+                          };
+                          return newTasks;
+                        });
                         return;
                       }
-                      setTasks(tasks => {
-                        tasks[task.id - 1] = json;
-                        return tasks;
-                      });
+                      alert("Error");
+
                     })
                   }}
                   className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-xs"
@@ -106,7 +110,7 @@ const TaskStatusTable = ({ change }: { change: number }) => {
           ))}
         </tbody>
       </table>
-    </div>
+    </div >
   );
 };
 

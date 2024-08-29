@@ -1,10 +1,5 @@
 app: health-checks-db 
-deployment:
-  enable: false 
-cron_job:
-  enable: false 
 service:
-  enable: true 
   port: 5432 
   targetPort: 5432 
   type: ClusterIP
@@ -12,12 +7,10 @@ containers:
   image: postgres:latest
   containerPort: 5432 
 postgres_statefulset:
-  enable: true 
   replicas: 1
   metadata:
     name: postgres_stateful_set
 volume:
-  enable: true
   size: 500Mi 
 env:
   POSTGRES_DB: health_checks 

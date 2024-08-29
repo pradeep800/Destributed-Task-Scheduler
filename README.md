@@ -92,7 +92,7 @@ Worker service consists of three main components:
    - Runs the executable file from the share volume by code.
    - Sends task success or failure notifications to the `Status Check Service`.
 
-
+u
 **Why JWT?**
 
 Because our worker node's main container runs our health check and completion logic. It's crucial for us to ensure secure communication since we don't fully trust the worker node. Therefore, we provide tokens to the worker node, restricting in a way that it can only affect only his state.

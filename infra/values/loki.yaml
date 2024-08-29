@@ -1,6 +1,5 @@
 app: loki
 deployment:
-  enable: true
   replicas: 1
 service:
   enable: true
@@ -10,9 +9,3 @@ service:
 containers:
     image: grafana/loki
     containerPort: 3100 
-cron_job:
-  enable: false 
-postgres_statefulset:
-  enable: false
-volume:
-  enable: false

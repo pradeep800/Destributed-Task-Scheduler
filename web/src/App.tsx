@@ -165,7 +165,7 @@ const TimeAndDayPicker = () => {
             required={true}
             onChange={(e) => {
               let r = parseInt(e.target.value);
-              if (r > 0 && r <= 3) {
+              if (r >= 0 && r <= 3) {
                 setRetry(r);
               } else {
                 alert("Retry Value should be inbetween 0-3")

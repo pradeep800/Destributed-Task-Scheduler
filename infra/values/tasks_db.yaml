@@ -1,10 +1,5 @@
 app: tasks-db 
-deployment:
-  enable: false 
-cron_job:
-  enable: false 
 service:
-  enable: true 
   port: 5432 
   targetPort: 5432 
   type: ClusterIP
@@ -12,10 +7,8 @@ containers:
   image: postgres:latest
   containerPort: 5432 
 postgres_statefulset:
-  enable: true 
   replicas: 1
 volume:
-  enable: true
   size: 500Mi 
 env:
   POSTGRES_DB: tasks 

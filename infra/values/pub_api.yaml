@@ -1,9 +1,7 @@
 app: pub-api
 deployment:
-  enable: true
   replicas: 2
 service:
-  enable: true
   port: 80
   targetPort: 3000
   type: LoadBalancer
@@ -13,10 +11,3 @@ containers:
 secrets:
   - tasks-secrets
   - s3-secrets
-# no cron job
-cron_job:
-  enable: false 
-postgres_statefulset:
-  enable: false
-volume:
-  enable: false

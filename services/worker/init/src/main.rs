@@ -1,15 +1,11 @@
-use aws_sdk_s3::Client as S3Client;
+use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_sqs::Client as SQSClient;
 use common::jwt::Jwt;
 use common::tracing::{get_subscriber, init_subscriber};
 use serde::{Deserialize, Serialize};
-use tokio::io::AsyncWriteExt;
 use tracing::{error, info, info_span};
 use worker_init::configuration::get_configuration;
-
-use health_checks::HealthCheckDb;
-use std::path::Path;
-use tokio::fs::File;
+use worker_init::kube::create_job;
 
 use std::time::Duration;
 use tasks::TasksDb;
@@ -28,109 +24,85 @@ async fn main() {
         std::io::stdout,
     );
     init_subscriber(subscriber);
+
     let config = get_configuration();
     let task_db_pool = config.tasks.get_pool().await;
     let tasks_db = TasksDb::new(&task_db_pool);
     let s3_client = config.s3.create_s3_client().await;
-
-    let health_db_pool = config.health_check.get_pool().await;
-    let health_db = HealthCheckDb::new(&health_db_pool);
-
     let sqs_client = config.sqs.create_client().await;
-    let mut message: Option<MessageData> = None;
-    let mut receipt_handle: Option<String> = None;
-    let mut i = 1;
-    while message.is_none() {
-        match receive(&sqs_client, &config.sqs.queue_url).await {
-            Ok(ReceiveReturn {
-                receipt_handle: rh,
-                data,
-            }) => {
-                info!("{:?} {:?}", data, rh);
-                if data.is_some() {
-                    message = Some(data.unwrap());
-                    receipt_handle = Some(rh.unwrap());
-                    break;
+
+    loop {
+        let mut message: Option<MessageData> = None;
+        let mut receipt_handle: Option<String> = None;
+        let mut i = 1;
+        while message.is_none() {
+            match receive(&sqs_client, &config.sqs.queue_url).await {
+                Ok(ReceiveReturn {
+                    receipt_handle: rh,
+                    data,
+                }) => {
+                    info!("{:?} {:?}", data, rh);
+                    if data.is_some() {
+                        message = Some(data.unwrap());
+                        receipt_handle = Some(rh.unwrap());
+                        break;
+                    }
+                }
+                Err(e) => {
+                    error!("Error receiving message: {}", e);
                 }
             }
+            info!("pooling for task {} th time", i);
+            i += 1;
+            sleep(Duration::from_secs(1)).await;
+        }
+        let message = message.unwrap();
+        let span = info_span!("init worker", tracing_id = message.tracing_id);
+        let _guard = span.enter();
+        let receipt_handle = receipt_handle.unwrap();
+        let hostname = uuid::Uuid::new_v4().to_string();
+        let jwt_client = Jwt::new(config.jwt_secret.clone());
+        let jwt = jwt_client
+            .encode(&message.tracing_id, message.task_id, &hostname)
+            .unwrap()
+            + "\n";
+        let expire_in = Duration::from_secs(60 * 21);
+        let presigning_config = PresigningConfig::expires_in(expire_in).unwrap();
+        let signed_url = s3_client
+            .get_object()
+            .bucket(&config.s3.bucket)
+            .key(message.task_id.to_string())
+            .presigned(presigning_config)
+            .await
+            .unwrap();
+
+        create_job(signed_url.uri().to_string(), jwt, message.tracing_id)
+            .await
+            .unwrap();
+
+        info!("job is created");
+        tasks_db
+            .update_picked_at_by_workers(message.task_id)
+            .await
+            .unwrap();
+        info!("set picked at by worker in db");
+        match sqs_client
+            .delete_message()
+            .queue_url(config.sqs.queue_url.clone())
+            .receipt_handle(receipt_handle)
+            .send()
+            .await
+        {
+            Ok(_) => info!("Message deleted successfully"),
             Err(e) => {
-                error!("Error receiving message: {}", e);
+                error!("Failed to delete message: {:?}", e);
+                panic!("didn't able to delete message");
             }
         }
-        info!("pooling for task {} th time", i);
-        i += 1;
-        sleep(Duration::from_secs(1)).await;
+        info!("completed");
     }
-    let message = message.unwrap();
-    let span = info_span!("init worker", tracing_id = message.tracing_id);
-
-    let _guard = span.enter();
-    let receipt_handle = receipt_handle.unwrap();
-    download_file_and_put_volume(&s3_client, &config.s3.bucket, &message.task_id.to_string())
-        .await
-        .unwrap();
-    info!("created file worker.txt");
-    let mut f = File::create(Path::new("/shared/worker.txt")).await.unwrap();
-    info!("getting host name");
-    let hostname = std::env::var("HOSTNAME").unwrap();
-    let jwt_client = Jwt::new(config.jwt_secret);
-    info!("encoding jwt");
-    let jwt = jwt_client
-        .encode(&message.tracing_id, message.task_id, &hostname)
-        .unwrap()
-        + "\n";
-    info!("writing jwt");
-    let _ = f.write_all(jwt.as_bytes()).await;
-
-    info!("writing tracing_id");
-    let _ = f.write_all(message.tracing_id.as_bytes()).await;
-    drop(f);
-    info!("releasing created file");
-    tasks_db
-        .update_picked_at_by_workers(message.task_id)
-        .await
-        .unwrap();
-    info!("set picked at by worker in db");
-    match sqs_client
-        .delete_message()
-        .queue_url(config.sqs.queue_url)
-        .receipt_handle(receipt_handle)
-        .send()
-        .await
-    {
-        Ok(_) => info!("Message deleted successfully"),
-        Err(e) => {
-            error!("Failed to delete message: {:?}", e);
-            panic!("didn't able to delete message");
-        }
-    }
-    health_db
-        .cu_health_check_entries(message.task_id, &hostname)
-        .await
-        .unwrap();
-    info!("created health entry");
-    info!("completed");
 }
 
-pub async fn download_file_and_put_volume(
-    client: &S3Client,
-    bucket_name: &str,
-    object_key: &str,
-) -> Result<(), aws_sdk_s3::Error> {
-    let get_object_output = client
-        .get_object()
-        .bucket(bucket_name)
-        .key(object_key)
-        .send()
-        .await?;
-    let mut file = File::create(Path::new("/shared/task")).await.unwrap();
-
-    let stream = get_object_output.body;
-    let data = stream.collect().await.unwrap();
-    let _ = file.write_all(&data.into_bytes()).await;
-
-    Ok(())
-}
 struct ReceiveReturn {
     receipt_handle: Option<String>,
     data: Option<MessageData>,

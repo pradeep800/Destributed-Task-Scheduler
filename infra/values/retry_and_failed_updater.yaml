@@ -2,17 +2,8 @@ app: retry-and-failed-updater
 deployment:
   enable: true
   replicas: 2 
-service:
-  enable: false 
 containers:
     image: pradeep800/retry_and_failed_updater:latest
 secrets:
   - tasks-secrets
   - health-check-secrets 
-cron_job:
-  enable: false 
-volume:
-  enable: false
-postgres_statefulset:
-  enable: false
-

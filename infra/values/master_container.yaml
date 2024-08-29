@@ -1,0 +1,12 @@
+app: master-container 
+deployment:
+  replicas: 3 
+containers:
+    image: pradeep800/worker_init:latest
+secrets:
+  - tasks-secrets
+  - s3-secrets
+  - sqs-secrets
+  - jwt-secrets
+service_account:
+  name: job-creator

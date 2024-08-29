@@ -10,7 +10,6 @@ pub struct Config {
     pub sqs: SQS,
     #[serde(alias = "JWT_SECRET")]
     pub jwt_secret: String,
-    pub health_check: Database,
 }
 
 pub fn get_configuration() -> Config {

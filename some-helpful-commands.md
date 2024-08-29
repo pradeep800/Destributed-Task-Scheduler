@@ -1,5 +1,5 @@
 ```
-ssh -L 3008:localhost:3008
+ssh -L 3008:localhost:3008 kube
 kubectl port-forward service/grafana-svc 3008:80
 
 

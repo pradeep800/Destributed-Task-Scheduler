@@ -1,4 +1,6 @@
-{{- if .Values.postgres_statefulset.enable }}
+{{- if .Values.postgres_statefulset}}
+
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

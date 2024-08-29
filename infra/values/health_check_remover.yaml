@@ -1,15 +1,6 @@
 app: health-check-remover 
-deployment:
-  enable: false 
-service:
-  enable: false 
 cron_job:
-  enable: true 
   image: pradeep800/health_check_remover:latest
-postgres_statefulset:
-  enable: false
-volume:
-  enable: false
 secrets:
   - health-check-secrets 
 
