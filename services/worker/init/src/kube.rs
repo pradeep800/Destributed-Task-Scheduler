@@ -32,6 +32,7 @@ pub async fn create_job(
                     "containers": [{
                         "name": "main-container",
                         "image": "pradeep800/worker_main:latest",
+                        "imagePullPolicy": "Always",
                         "env": [
                             {
                                 "name": "signed_url",

@@ -6,9 +6,10 @@ pub async fn process(pool: &PgPool) {
         DELETE FROM health_check_entries 
         WHERE worker_finished= true
         AND last_time_health_check <= NOW()- INTERVAl '20 MINUTES'
+        returning task_id, pod_name     
         "
     )
-    .execute(pool)
+    .fetch_all(pool)
     .await
     .unwrap();
 }

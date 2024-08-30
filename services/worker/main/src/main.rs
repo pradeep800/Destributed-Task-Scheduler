@@ -30,6 +30,7 @@ async fn main() {
         "info".to_string(),
         std::io::stdout,
     );
+    info!("new deployment");
     init_subscriber(subscriber);
 
     let tracing_id = env::var("tracing_id").unwrap();
@@ -101,17 +102,19 @@ async fn main() {
 
     //TODO: it should not go beond this line until one heart beat is sended
     let binary_task_execution = execute_binary(&tx);
-    select! {
+    let _ = select! {
         _ = binary_task_execution=> {},
         _ = heartbeat_task => {},
         task_body = rx.recv() => {
             send_completion_status_check(&task_body, &Arc::clone(&jwt)).await;
         }
     }
+    .in_current_span();
 }
 
 #[instrument(level = "info")]
 async fn send_completion_status_check(task_body: &Option<ChannelBody>, jwt: &Arc<String>) {
+    info!("task body {:?}", task_body);
     match task_body {
         Some(tb) => {
             send_status(tb, jwt).await;
@@ -218,7 +221,6 @@ async fn download_file_from_signed_url(
     let client = reqwest::Client::new();
 
     let response = client.get(signed_url).send().await?;
-    info!("checking new deployment");
     if !response.status().is_success() {
         return Err(format!("Failed to download file: HTTP {}", response.status()).into());
     }
@@ -233,7 +235,7 @@ async fn download_file_from_signed_url(
     Ok(())
 }
 
-#[instrument(level = "error")]
+#[instrument(level = "error", skip(tx))]
 async fn execute_binary(tx: &Sender<ChannelBody>) {
     let mut task_status: Option<ExitStatus> = None;
 
