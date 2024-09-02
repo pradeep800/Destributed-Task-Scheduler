@@ -10,7 +10,7 @@
 first be inside infra folder
 
 ```
-kubectl apply -f secrets.yaml
+kubectl apply -f secrets.yaml 
 ```
 
 ### Set up tasks db
@@ -29,7 +29,7 @@ helm install health-db . -f values/health_check_db.yaml
 ### Do migration in those database
 
 ```
-kubectl apply -f migration.yaml
+kubectl apply -f migration.yaml 
 ```
 ### Install grafana 
 

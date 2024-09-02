@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM health_check_entries \n        WHERE worker_finished= true\n        AND last_time_health_check <= NOW()- INTERVAl '20 MINUTES'\n        returning task_id, pod_name     \n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "pod_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "534c7695e39829a819dc4202a6e8d2e5130775500e24e9eb3d37b6319bb1208a"
+}

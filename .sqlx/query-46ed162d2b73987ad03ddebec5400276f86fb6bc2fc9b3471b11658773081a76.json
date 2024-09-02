@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM health_check_entries WHERE task_id = $1 AND pod_name= $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "last_time_health_check",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "worker_finished",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 3,
+        "name": "pod_name",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "46ed162d2b73987ad03ddebec5400276f86fb6bc2fc9b3471b11658773081a76"
+}

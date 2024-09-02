@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO Tasks (\n            schedule_at, picked_at_by_producers, picked_at_by_workers,\n            successful_at, failed_ats, failed_reasons,\n            total_retry, current_retry,\n            file_uploaded, is_producible, tracing_id\n        )\n        VALUES (\n            $1, $2, $3,\n            $4, $5, $6,\n            $7, $8,\n            $9, $10, $11 \n        )\n        RETURNING *;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "schedule_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "picked_at_by_producers",
+        "type_info": "TimestamptzArray"
+      },
+      {
+        "ordinal": 3,
+        "name": "picked_at_by_workers",
+        "type_info": "TimestamptzArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "successful_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "failed_ats",
+        "type_info": "TimestamptzArray"
+      },
+      {
+        "ordinal": 6,
+        "name": "failed_reasons",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 7,
+        "name": "total_retry",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 8,
+        "name": "tracing_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "current_retry",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "file_uploaded",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "is_producible",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "Timestamptz",
+        "TimestamptzArray",
+        "TextArray",
+        "Int2",
+        "Int2",
+        "Bool",
+        "Bool",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "315521a49a4bf34291bd825c12573461bab38e327e8efc952b04d19e30014a9b"
+}
