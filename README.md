@@ -73,10 +73,10 @@ here is what `Worker Spinner` container is doing
 - Creating random uuid for host_id.
 - Creating a JWT which include task_id, host_id, tracing_id and pod_name. 
 - Create new  `Worker` container where we will provide env variable given below
- - host_id
- - tracing_id
- - jwt
- - signed url
+   - host_id
+   - tracing_id
+   - jwt
+   - signed url
 - add new entry at `picked_at_by_worker` to the current time.
 
 ### Worker

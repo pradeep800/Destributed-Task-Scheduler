@@ -91,7 +91,6 @@ async fn main() {
            send_status(&task_body, &Arc::clone(&jwt)).await;
         },
        _ = heartbeat_task => {
-
            send_status(&ChannelBody{
                 status:"FAILED".to_string(),
                 body:Some("Can't send health check".to_string()),
