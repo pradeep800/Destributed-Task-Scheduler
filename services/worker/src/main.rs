@@ -23,11 +23,7 @@ struct ChannelBody {
 
 #[tokio::main]
 async fn main() {
-    let subscriber = get_subscriber(
-        "worker_main".to_string(),
-        "info".to_string(),
-        std::io::stdout,
-    );
+    let subscriber = get_subscriber("worker".to_string(), "info".to_string(), std::io::stdout);
     init_subscriber(subscriber);
 
     let tracing_id = env::var("tracing_id").unwrap();
@@ -124,9 +120,8 @@ async fn send_heartbeat(jwt: &Arc<String>) -> Result<(), reqwest::Error> {
 }
 #[instrument(level = "info")]
 async fn send_status(cb: &ChannelBody, jwt: &Arc<String>) {
-    let jsonwebtoken = format!("{}", jwt);
-    println!("{}", jsonwebtoken);
     let client = reqwest::Client::new();
+
     let mut i: u32 = 1;
     let two: u32 = 2;
     if cb.status == "SUCCESS" {

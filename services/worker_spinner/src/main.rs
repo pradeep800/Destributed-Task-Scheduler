@@ -18,11 +18,7 @@ struct MessageData {
 
 #[tokio::main]
 async fn main() {
-    let subscriber = get_subscriber(
-        "worker_init".to_string(),
-        "info".to_string(),
-        std::io::stdout,
-    );
+    let subscriber = get_subscriber("worker".to_string(), "info".to_string(), std::io::stdout);
     init_subscriber(subscriber);
 
     let config = get_configuration();

@@ -1,4 +1,4 @@
-name: Publish worker init
+name: Publish Worker Spinner 
 on:
   [workflow_dispatch]
 
