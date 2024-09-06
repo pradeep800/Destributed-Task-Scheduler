@@ -31,7 +31,7 @@ pub async fn create_job(
                 "spec": {
                     "containers": [{
                         "name": "main-container",
-                        "image": "pradeep800/worker_spinner:latest",
+                        "image": "pradeep800/worker:latest",
                         "imagePullPolicy": "Always",
                         "env": [
                             {
