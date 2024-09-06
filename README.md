@@ -12,7 +12,7 @@ First, our request will go to a `Public API`. The API will add task detail entry
 1. Your given binary should be idempotent.
 2. It will start executing code under 30 seconds. 
 3. Maximum task execution time is 20 minute.
-4. Retry will happen under 30 seconds(when task fail).
+4. Retry will happen under 30 seconds(after task fail).
 
 ## Component Explanation
 ### Tasks Database
