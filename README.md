@@ -8,6 +8,12 @@ The objective of this project is to create a task scheduler capable of execute s
 ## Architecture Explanation
 First, our request will go to a `Public API`. The API will add task detail entry to our `Task Database`. Then, our `Task Producer` will take these entries and add them to an `SQS Queue`. After that, a worker will pick up tasks from the SQS queue and execute them. It will also send health checks to a `Status Check Service` in every 5 seconds. The `Status Check Service` will update the health check time in a `Health Check Database`. When the worker finishes a task, it will send a request to the `Status Check Service`, which will then update the `successful_at` or `failed_ats` with `failed_reasons` in `Task Database`.
 
+### Things to consider before using this service 
+1. Your given binary should be idempotent.
+2. It will start executing code under 30 seconds. 
+3. Maximum task execution time is 20 minute.
+4. Retry will happen under 30 seconds.
+
 ## Component Explanation
 ### Tasks Database
 This database for storing information about tasks
@@ -250,9 +256,4 @@ DELETE FROM health_check_entries
 WHERE worker_finished= true
 AND last_time_health_check >= NOW()- INTERVAl 20 MIN
 ```
-### Things to consider before using this service 
 
-1. Your given binary should be idempotent.
-2. It will start executing code under 30 seconds. 
-3. Maximum task execution time is 20 minute.
-4. Retry will happen under 30 seconds.
