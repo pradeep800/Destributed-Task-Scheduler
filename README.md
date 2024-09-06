@@ -16,7 +16,7 @@ This database for storing information about tasks
 | Attribute             | Keytype                    |
 | --------------------- | -------------------------- |
 | id                    | Integer (PK)               |
-| schedule_at           | timestamptz\|null          |
+| schedule_at           | timestamptz|null          |
 | picked_at_by_producers| timestamptz[]              |
 | picked_at_by_workers  | timestamptz[]              |
 | successful_at         | timestamptz                |
@@ -66,33 +66,26 @@ why are we using `SQS`
 - simplicity 
 - If we didn't use `SQS` worker have to make multiple connection to database and worker node can be in millions (so million connection)   
 
-### Worker Service
-Worker service consists of three main components:
-1. **Share Volume:**
-   Share volume is the storage shared between the init container and the main container. It stores:
-   - The executable file.
-   - `share_info.txt`.
+### Worker Spinner 
+here is what `Worker Spinner` container is doing 
+- Polling for a task entry from SQS.
+- Creating S3 signed url which give access to task file for 20 minute.
+- Creating random uuid for host_id.
+- Creating a JWT which include task_id, host_id, tracing_id and pod_name. 
+- Create new  `Worker` container where we will provide env variable given below
+ - host_id
+ - tracing_id
+ - jwt
+ - signed url
+- add new entry at `picked_at_by_worker` to the current time.
 
-`share_info.txt` contains
-- jwt with claims including tracing_id, task_id
-- tracing_id in second line 
+### Worker
+The main container performs the following tasks:
+- Get info about worker from environmental variable.
+- Download file from S3 and execute the file.
+- Keep sending heart beat to `Status Check Service`.
+- Sends task success or failure notifications to the `Status Check Service`.
 
-2. **Init Container:**
-   here is what init container is doing
-   - Polling for a single task entry from SQS.
-   - Retrieving the executable file from S3.
-   - Storing the retrieved S3 file into the share volume.
-   - Creating a JWT and saving it in a file named `share_info.txt`.
-   - saving trace_id in `share_info.txt` in second line
-   - add new entry at `picked_at_by_worker` to the current time.
-
-3. **Main Container:**
-   The main container performs the following tasks:
-   - Executes a file providing health checks and completion updates to the `Status Check Service`. It also parses the `share_info.txt` file from the share volume.
-   - Runs the executable file from the share volume by code.
-   - Sends task success or failure notifications to the `Status Check Service`.
-
-u
 **Why JWT?**
 
 Because our worker node's main container runs our health check and completion logic. It's crucial for us to ensure secure communication since we don't fully trust the worker node. Therefore, we provide tokens to the worker node, restricting in a way that it can only affect only his state.
@@ -208,6 +201,8 @@ FOR UPDATE SKIP LOCKED
 
 iterate through every single entry in health_check_entries
 and  do this first
+
+
 ```sql
 SELECT * from Tasks where id=:hc[i].id FOR UPDATE
 
@@ -225,6 +220,7 @@ failed_at = array_append(failed_at, now()),
 failed_reason = array_append(failed_reason, :reason)
 WHERE id = :task_id
 ```
+
 - if our total_retry > current_retry
 
 ```sql
@@ -254,7 +250,7 @@ AND last_time_health_check >= NOW()- INTERVAl 20 MIN
 ```
 ### Things to consider before using this service 
 
-1. Your given binary should be idempotent 
-2. It will start executing code under 1 minute 
-3. Maximum task execution time is 20 minute
-4. Retry will happen under 1 minute
+1. Your given binary should be idempotent.
+2. It will start executing code under 30 seconds. 
+3. Maximum task execution time is 20 minute.
+4. Retry will happen under 30 seconds.
