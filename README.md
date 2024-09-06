@@ -1,5 +1,5 @@
 # Distributed Task Scheduler
-The objective of this project is to create a task scheduler capable of executing binaries from any compiled language at specified times.
+The objective of this project is to create a task scheduler capable of execute static binaries from any compiled language at specified times.
 
 ## Architecture Diagram
 ![Architecture Diagram](images/light.png#gh-light-mode-only)
@@ -188,6 +188,8 @@ For making sure that the container we think are terminated are terminated. we ha
 
 Sql query for checking task which didn't send health-check for 20-second
 
+
+
 ```sql
 SELECT *
 FROM health_check_entries
@@ -208,7 +210,7 @@ SELECT * from Tasks where id=:hc[i].id FOR UPDATE
 
 UPDATE health_check_entries SET 
 worker_finished=true where tasks_id=:task_id AND pod_name=:pod_name
-``
+```
 
 -  if total_retry = current_retry
 
