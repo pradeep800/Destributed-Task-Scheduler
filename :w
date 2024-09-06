@@ -8,8 +8,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
+use tokio::sync::mpsc::{self, Sender};
 use tokio::time::sleep;
-use tokio::{process::Command, time::interval};
+use tokio::{process::Command, select, time::interval};
 use tracing::Instrument;
 use tracing::{error, info, info_span, instrument};
 const HEART_BEAT_INTERVAL_IN_SECOND: i32 = 5;
@@ -23,6 +24,7 @@ struct ChannelBody {
 
 #[tokio::main]
 async fn main() {
+    // creating subscriber for tracing
     let subscriber = get_subscriber(
         "worker_main".to_string(),
         "info".to_string(),
@@ -59,6 +61,8 @@ async fn main() {
         .unwrap();
     info!("added +x permissoin to file");
     let heartbeat_interval = Duration::from_secs(HEART_BEAT_INTERVAL_IN_SECOND as u64);
+    let (tx, mut rx) = mpsc::channel(1);
+    let tx_clone = tx.clone();
     let jsonwebtoken = Arc::clone(&jwt);
     //keep sending heartbeat
     let heartbeat_task = tokio::spawn(
@@ -75,7 +79,15 @@ async fn main() {
                         error!("sending heartbeat {}th time", i);
                         i += 1;
                         if i == 4 {
-                            error_with_panic("Can't send message to channel").await;
+                            if let Err(_err) = tx_clone
+                                .send(ChannelBody {
+                                    status: "FAILED".to_string(),
+                                    body: Some(format!("Task status code is {}", "not 0")),
+                                })
+                                .await
+                            {
+                                error_with_panic("Can't send message to channel").await;
+                            }
                         }
                     }
                 }
@@ -90,19 +102,30 @@ async fn main() {
     //TODO: it should not go beond this line until one heart beat is sended
     let binary_task_execution = execute_binary();
 
-    tokio::select! {
-        task_body= binary_task_execution => {
-           send_status(&task_body, &Arc::clone(&jwt)).await;
-        },
-       _ = heartbeat_task => {
+    let result = tokio::select! {
+            task_body= binary_task_execution => {
+    send_status(&task_body,& Arc::clone(&jwt)).await;
+            },
+           _ = heartbeat_task => {
+            },
+            task_body = rx.recv() => {
+                        send_completion_status_check(&task_body, &Arc::clone(&jwt)).await;
+            },
 
-           send_status(&ChannelBody{
-                status:"FAILED".to_string(),
-                body:Some("Can't send health check".to_string()),
-            }, &Arc::clone(&jwt)).await;
+        };
+}
 
-        },
-    };
+#[instrument(level = "info")]
+async fn send_completion_status_check(task_body: &Option<ChannelBody>, jwt: &Arc<String>) {
+    info!("task body {:?}", task_body);
+    match task_body {
+        Some(tb) => {
+            send_status(tb, jwt).await;
+        }
+        None => {
+            error_with_panic("Channel didn't send value").await;
+        }
+    }
 }
 
 #[instrument(level = "info")]
