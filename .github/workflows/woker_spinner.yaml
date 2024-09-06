@@ -1,9 +1,10 @@
-name: Publish worker main 
+name: Publish worker init
 on:
   [workflow_dispatch]
 
 env:
-  file_name: "worker_main"
+  file_name: "worker_spinner"
+
 jobs:
   publish_image:
     name: Publish Docker Image
@@ -18,7 +19,7 @@ jobs:
       
       - name: Build Docker image
         run: |
-          docker build . -t pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }} -f ./services/worker/main/Dockerfile
+          docker build . -t pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }} -f ./services/worker_spinner/Dockerfile
           docker tag pradeep800/${{ env.file_name }}:${{ steps.slug.outputs.sha7 }} pradeep800/${{ env.file_name }}:latest
       
       - name: Publish Docker image

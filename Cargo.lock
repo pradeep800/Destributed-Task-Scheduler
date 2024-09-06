@@ -4194,7 +4194,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "worker_init"
+name = "worker"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "reqwest",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "worker_spinner"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -4211,17 +4222,6 @@ dependencies = [
  "tokio",
  "tracing",
  "uuid",
-]
-
-[[package]]
-name = "worker_main"
-version = "0.1.0"
-dependencies = [
- "common",
- "reqwest",
- "serde_json",
- "tokio",
- "tracing",
 ]
 
 [[package]]

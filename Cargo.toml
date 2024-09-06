@@ -3,7 +3,7 @@ resolver="2"
 members = [ 
     "crates/common", "crates/db/health_checks", "crates/db/tasks",
     "services/pub_api", "services/health_check_remover", "services/retry_and_failed_updater", "services/status_check", 
-    "services/tasks_producer", "services/worker/main", "services/worker/init",
+    "services/tasks_producer", "services/worker", "services/worker_spinner",
 ]
 [workspace.dependencies]
 serde = "1.0.204"

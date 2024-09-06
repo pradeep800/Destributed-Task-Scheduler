@@ -4,8 +4,8 @@ use common::jwt::Jwt;
 use common::tracing::{get_subscriber, init_subscriber};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, info_span};
-use worker_init::configuration::get_configuration;
-use worker_init::kube::create_job;
+use worker_spinner::configuration::get_configuration;
+use worker_spinner::kube::create_job;
 
 use std::time::Duration;
 use tasks::TasksDb;

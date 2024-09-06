@@ -59,7 +59,7 @@ helm install  producer . -f values/tasks_producer.yaml
 
 ```
 
-helm install master-container  . -f values/master_container.yaml
+helm install worker-spinner  . -f values/worker_spinner.yaml
 ```
 
 ### Set up status check 

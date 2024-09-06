@@ -14,11 +14,11 @@ RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path r
 COPY . .
 ENV SQLX_OFFLINE=true
 ENV K8S_OPENAPI_ENABLED_VERSION=1.30
-RUN cargo build --release --target x86_64-unknown-linux-musl --bin worker_init 
+RUN cargo build --release --target x86_64-unknown-linux-musl --bin worker_spinner 
 
 FROM alpine AS runtime
 RUN addgroup -S myuser && adduser -S myuser -G myuser
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/worker_init /usr/local/bin/
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/worker_spinner /usr/local/bin/
 USER myuser
-CMD ["/usr/local/bin/worker_init"]
+CMD ["/usr/local/bin/worker_spinner"]
 

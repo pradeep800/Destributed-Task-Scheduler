@@ -1,5 +1,5 @@
 [package]
-name = "worker_init"
+name = "worker_spinner"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,11 +9,11 @@ config = {workspace=true}
 tokio ={workspace=true}
 tracing = {workspace=true}
 aws-sdk-s3.workspace = true
-common = { version = "0.1.0", path = "../../../crates/common" }
-tasks = { version = "0.1.0", path = "../../../crates/db/tasks" }
+common={path="../../crates/common"}
+tasks={path="../../crates/db/tasks"}
+health_checks={path="../../crates/db/health_checks"}
 aws-sdk-sqs = { workspace=true}
 serde_json.workspace = true
-health_checks = { version = "0.1.0", path = "../../../crates/db/health_checks" }
 kube = "0.93.1"
 k8s-openapi = { version = "0.22.0", features = ["v1_30"] }
 uuid.workspace = true
